@@ -1,7 +1,16 @@
-from fastapi import FastAPI
+from typing import Annotated
+
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from database import engine, SessionLocal
+import models
+from models import Users
 
 app = FastAPI()
+
+models.Base.metadata.create_all(bind=engine)
 
 origins = ["*"]
 
@@ -15,6 +24,22 @@ app.add_middleware(
 )
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+db_dependency = Annotated[Session, Depends(get_db)]
+
+
 @app.get('/')
 async def first_api():
     return {"message": "Hello there"}
+
+
+@app.get('/users')
+async def read_users(db: db_dependency):
+    return db.query(Users).all()
