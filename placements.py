@@ -3,11 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import models
 from database import engine
+from routers.dikaiologitika import router as dikaiologitika_router
+from routers.questions import router as question_router
+from routers.user_answers import router as user_answers_router
 from routers.users import router as users_router
 
 app = FastAPI()
 
 app.include_router(users_router)
+
+app.include_router(dikaiologitika_router)
+app.include_router(question_router)
+app.include_router(user_answers_router)
 
 models.Base.metadata.create_all(bind=engine)
 

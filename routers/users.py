@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from core.auth import create_access_token
-from crud.user_crud import get_user_by_id, create_user, get_user_by_AM
+from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
 from dependencies import get_db, get_current_user
 from models import Users
 from schemas.response import ResponseWrapper, Message
@@ -41,9 +41,8 @@ def create_user_endpoint(response: Response, user: UserCreate, db: Session = Dep
 
 
 @router.get("/{user_id}/", response_model=ResponseWrapper[User])
-def get_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user_id: int = Depends(get_current_user)):
-    print('user_id', user_id, 'current_user_id', current_user_id)
-    if user_id != current_user_id:
+def get_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: Users = Depends(get_current_user)):
+    if user_id != current_user.id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this user.")
 
     db_user = get_user_by_id(db, user_id)

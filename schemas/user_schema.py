@@ -1,4 +1,11 @@
+from enum import Enum
+
 from pydantic import BaseModel
+
+
+class Role(str, Enum):
+    student = "student"
+    admin = "admin"
 
 
 class UserBase(BaseModel):
@@ -8,6 +15,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    role: Role = Role.student
     pass
 
 

@@ -1,19 +1,24 @@
 from sqlalchemy.orm import Session
 
-import models
+from models import Users
 
 
 def get_user_by_AM(db: Session, AM: str):
-    return db.query(models.Users).filter(models.Users.AM == AM).first()
+    return db.query(Users).filter(Users.AM == AM).first()
 
 
 def get_user_by_id(db: Session, ID: int):
-    return db.query(models.Users).filter(models.Users.id == ID).first()
+    return db.query(Users).filter(
+        Users.id == ID).first()
 
 
 def create_user(db: Session, user: dict):
-    db_user = models.Users(**user)
+    db_user = Users(**user)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def is_admin(user: Users) -> bool:
+    return user.role == 'admin'
