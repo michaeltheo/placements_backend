@@ -1,7 +1,15 @@
+from enum import Enum
+
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship
 
 from database import Base
+
+
+class UserRole(Enum):
+    STUDENT = "student"
+    ADMIN = "admin"
 
 
 class Users(Base):
@@ -11,7 +19,7 @@ class Users(Base):
     first_name = Column(String)
     last_name = Column(String)
     AM = Column(String, unique=True)
-    role = Column(String, default='student')
+    role = Column(SQLAlchemyEnum(UserRole), default=UserRole.STUDENT)
 
     # Define the relationships here, within the Users class
     dikaiologitika = relationship("Dikaiologitika", back_populates="user")

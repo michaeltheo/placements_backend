@@ -28,8 +28,3 @@ app.add_middleware(
     allow_methods=["*"],  # Which HTTP methods are allowed
     allow_headers=["*"],  # Which HTTP headers are allowed
 )
-
-
-@app.get('/')
-async def first_api():
-    return {"message": "Hello there"}
