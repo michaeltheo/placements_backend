@@ -92,7 +92,7 @@ async def delete_answers_endpoint(user_id: int, db: Session = Depends(get_db),
     deletion_successful = delete_user_answers(db, user_id)
     if deletion_successful:
         return Message(
-            detail=f"All answers from user: {current_user.first_name} {current_user.last_name} have been deleted")
+            detail=f"All answers from user have been deleted")
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
