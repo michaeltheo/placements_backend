@@ -164,4 +164,4 @@ async def admin_get_answers_statistics_endpoint(db: Session = Depends(get_db),
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin ONLY")
     stats_list = get_questions_statistics(db=db)
-    return ResponseWrapper(data=stats_list, message=Message(detail="Test"))
+    return ResponseWrapper(data=stats_list, message=Message(detail="Statistics fetched successfully"))
