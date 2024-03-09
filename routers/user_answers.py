@@ -4,82 +4,97 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from crud.user_answer_crud import create_or_update_user_answer, get_user_answers_with_details
+from crud.user_answer_crud import submit_user_answers, get_question_with_user_answers, delete_user_answers
+from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
-from models import Users, Question, AnswerOption, UserAnswer
-from schemas.question_schema import QuestionWithAnswers, AnswerWithQuestion, QuestionModel
-from schemas.response import ResponseWrapper, Message, DetailedUserAnswersResponse, DetailedUserAnswersResponseZ
-from schemas.user_answer_schema import UserAnswerCreate
-from schemas.user_answer_schema import UserAnswerModel, AnswerOptionModel
+from models import Users
+from schemas.response import Message, ResponseWrapper
+from schemas.user_answer_schema import AnswerSubmission, QuestionWithAnswers
 
 router = APIRouter(prefix='/user_answers', tags=['user answers'])
 
 
-@router.post('/', response_model=ResponseWrapper[DetailedUserAnswersResponse], status_code=status.HTTP_200_OK)
-async def submit_answers(
-        answers_data: List[UserAnswerCreate],
-        db: Session = Depends(get_db),
-        current_user: Users = Depends(get_current_user)
-):
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
+@router.post("/submit-answers/", response_model=Message, status_code=status.HTTP_200_OK)
+def submit_answers_endpoint(user_id: int, submissions: List[AnswerSubmission], db: Session = Depends(get_db),
+                            current_user: Users = Depends(get_current_user)):
+    """
+    Submit answers for a user.
 
-    for answer_data in answers_data:
-        create_or_update_user_answer(db=db, user_id=current_user.id, **answer_data.dict())
+    This endpoint allows users to submit answers to questions. It accepts a list of answer submissions, each containing
+    the question ID and the selected answer(s). If the user is submitting answers to a question that supports multiple
+    answers, multiple answer IDs can be provided.
 
-    user_answers = db.query(UserAnswer).filter(UserAnswer.user_id == current_user.id).join(Question).join(
-        AnswerOption).all()
+    Parameters:
+    - user_id (int): The ID of the user submitting the answers. This is checked against the ID of the current user
+      to ensure users can only submit answers for themselves.
+    - submissions (List[AnswerSubmission]): A list of submissions, each containing a question ID and answer IDs.
+    - db (Session): Dependency injection of the database session.
+    - current_user (Users): The current user making the request. Used to verify that the user_id matches the current user's ID.
 
-    questions_answers = []
-    for user_answer in user_answers:
-        question = db.query(Question).filter(Question.id == user_answer.question_id).first()
-        answer = db.query(AnswerOption).filter(AnswerOption.id == user_answer.answer_option_id).first()
+    Returns:
+    - Message: A success message indicating that the answers were submitted successfully.
 
-        question_with_answers = QuestionWithAnswers(
-            id=question.id,
-            text=question.question_text,
-            answers=[answer]
+    Raises:
+    - HTTPException: If the current_user's ID does not match the user_id, indicating an attempt to submit answers for another user.
+    """
+    if current_user.id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Cannot submit answers for other user")
+    # Call the CRUD operation to submit user answers
+    submit_user_answers(db, user_id, submissions)
+    return Message(detail='Answers submitted successfully')
+
+
+@router.get("/{user_id}", response_model=ResponseWrapper[List[QuestionWithAnswers]])
+async def get_user_responses_endpoint(user_id: int, db: Session = Depends(get_db),
+                                      current_user: Users = Depends(get_current_user)):
+    """
+    Get all responses for a given user.
+
+    This endpoint retrieves all the questions along with the user's answers. It's designed to ensure that users can only
+    access their own responses unless they're an admin, in which case they can access responses of any user.
+
+    Parameters:
+    - user_id (int): The ID of the user whose responses are being requested.
+    - db (Session): Dependency injection of the database session.
+    - current_user (Users): The current user making the request, injected automatically.
+
+    Returns:
+    - ResponseWrapper[List[QuestionWithAnswers]]: A wrapper containing the list of questions with the user's answers and a success message.
+    """
+    if current_user.id != user_id and not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Access restricted to your own responses or admin.")
+    user_responses = get_question_with_user_answers(db, user_id)
+    return ResponseWrapper(data=user_responses, message=Message(detail="Answers fetched successfully"))
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_answers_endpoint(user_id: int, db: Session = Depends(get_db),
+                                  current_user: Users = Depends(get_current_user)):
+    """
+    Delete all answers submitted by a user.
+
+    This endpoint allows for the deletion of all answers submitted by a specified user. It checks if the current user
+    is either the user whose answers are to be deleted or an admin. If not, it restricts the action.
+
+    Parameters:
+    - user_id (int): The ID of the user whose answers are to be deleted.
+    - db (Session): Dependency injection of the database session.
+    - current_user (Users): The current user making the request, injected automatically.
+
+    Returns:
+    - Message: a message indicating the outcome of the deletion process.
+    """
+    if current_user.id != user_id and not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Deletion restricted to your own answers or admin.")
+    deletion_successful = delete_user_answers(db, user_id)
+    if deletion_successful:
+        return Message(
+            detail=f"All answers from user: {current_user.first_name} {current_user.last_name} have been deleted")
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No answers found to delete or could not be deleted"
         )
-
-        answer_with_user = AnswerWithQuestion(
-            question=question_with_answers,
-        )
-
-        questions_answers.append(answer_with_user)
-
-    # Construct the final response
-    response_data = DetailedUserAnswersResponse(
-        questions_answers=questions_answers,
-        user_details=current_user
-    )
-
-    return ResponseWrapper(data=response_data, message=Message(detail="Answers submitted successfully"))
-
-
-@router.get('/', response_model=ResponseWrapper[DetailedUserAnswersResponseZ],
-            status_code=status.HTTP_200_OK)
-async def get_detailed_user_answers_endpoint(
-        db: Session = Depends(get_db),
-        current_user: Users = Depends(get_current_user)
-):
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated")
-
-    user_answers_details = get_user_answers_with_details(db, current_user.id)
-    print(user_answers_details)
-    detailed_answers = []
-    for user_answer, question, selected_answer in user_answers_details:
-        question_model = QuestionModel(
-            id=question.id,
-            question_text=question.question_text
-        )
-        question_model.selected_answer = AnswerOptionModel.from_orm(selected_answer)
-
-        user_answer_model = UserAnswerModel(question_details=question_model)
-        detailed_answers.append(user_answer_model)
-
-    response_data = DetailedUserAnswersResponseZ(
-        questions_answers=detailed_answers,
-        user_details=current_user
-    )
-    return ResponseWrapper(data=response_data, message=Message(detail="Detailed user answers fetched successfully"))

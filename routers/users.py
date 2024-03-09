@@ -69,7 +69,7 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
             first_name=db_user.first_name,
             last_name=db_user.last_name,
             AM=db_user.AM,
-            role=db_user.role.value,  # Role is stored as an enum in the database.
+            role=db_user.role.value,
             isAdmin=admin_status
         )
     else:
@@ -86,10 +86,9 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
             first_name=new_user.first_name,
             last_name=new_user.last_name,
             AM=new_user.AM,
-            role=new_user.role.value,  # Role is stored as an enum in the database.
+            role=new_user.role.value,
             isAdmin=admin_status
         )
-    # Return the user details wrapped in a response wrapper with a success message.
     return ResponseWrapper(data=user_response, message=Message(detail="User processed successfully"))
 
 

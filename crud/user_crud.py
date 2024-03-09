@@ -28,7 +28,7 @@ def get_user_by_id(db: Session, user_id: int) -> Type[Users] | None:
     - user_id (int): The ID of the user in the database.
 
     Returns:
-    - Users: An instance of the Users model or None if not found.
+    - `Users`: An instance of the Users model or None if not found.
     """
     return db.query(Users).filter(Users.id == user_id).first()
 
@@ -42,7 +42,7 @@ def create_user(db: Session, user: dict) -> Users:
     - user (dict): A dictionary containing the user's information.
 
     Returns:
-    - Users: An instance of the newly created Users model.
+    - `Users`: An instance of the newly created Users model.
     """
     # Extract the role and remove it from the dictionary to avoid conflict
     role_str = user.pop('role', None)  # Remove role from user dict and store its value

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship
 
@@ -10,6 +10,18 @@ from database import Base
 class UserRole(Enum):
     STUDENT = "student"
     ADMIN = "admin"
+
+
+class DikaiologitikaType(Enum):
+    Type1 = "Type1"
+    Type2 = "Type2"
+    Type3 = "Type3"
+
+
+class QuestionType(str, Enum):
+    multiple_choice = "multiple_choice"
+    multiple_choice_with_text = "multiple_choice_with_text"
+    free_text = "free_text"
 
 
 class Users(Base):
@@ -31,39 +43,21 @@ class Dikaiologitika(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    file_path = Column(String, unique=True)
+    file_path = Column(String)
     date = Column(DateTime)
-    type = Column(String)
+    type = Column(SQLAlchemyEnum(DikaiologitikaType))
 
     user = relationship("Users", back_populates='dikaiologitika')
-
-
-# class Question(Base):
-#     __tablename__ = 'questions'
-#
-#     id = Column(Integer, primary_key=True, index=True)
-#     question_text = Column(String, nullable=False)
-#     question_answers = Column(JSON, nullable=True)
-#     answers = relationship("Answer", back_populates="question")
-#
-#
-# class Answer(Base):
-#     __tablename__ = 'answers'
-#
-#     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey('users.id'))
-#     question_id = Column(Integer, ForeignKey('questions.id'))
-#     answer_text = Column(String, nullable=False)  # Could be the selected choice or an open-ended response
-#
-#     # Ensure the back_populates parameters refer to the correct relationships
-#     user = relationship("Users", back_populates="answers")
-#     question = relationship("Question", back_populates="answers")
 
 
 class Question(Base):
     __tablename__ = 'questions'
     id = Column(Integer, primary_key=True, index=True)
     question_text = Column(String, nullable=False)
+    question_type = Column(
+        SQLAlchemyEnum(QuestionType, values_callable=lambda obj: [e.value for e in obj], create_constraint=True,
+                       name='questiontype'), nullable=False)
+    supports_multiple_answers = Column(Boolean, default=False, nullable=False)
     # Relationship to AnswerOption
     answer_options = relationship("AnswerOption", back_populates="question")
 
@@ -82,10 +76,12 @@ class AnswerOption(Base):
 class UserAnswer(Base):
     __tablename__ = 'user_answers'
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     question_id = Column(Integer, ForeignKey('questions.id'))
-    answer_option_id = Column(Integer, ForeignKey('answer_options.id'))
-    answer_text = Column(String, nullable=True)
+    answer_option_id = Column(Integer, ForeignKey('answer_options.id'), nullable=True)
+    answer_text = Column(Text, nullable=True)  # For free text responses or "Other" option text
+
+    # Relationships
     user = relationship("Users", back_populates="answers")
     question = relationship("Question")
     answer_option = relationship("AnswerOption", back_populates="user_answers")

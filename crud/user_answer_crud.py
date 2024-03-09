@@ -1,50 +1,114 @@
+from typing import List
+
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from starlette import status
 
-from models import UserAnswer, AnswerOption, Question
+from models import UserAnswer as Models_UserAnswer, Question as Models_Question
+from schemas.question_schema import QuestionType
+from schemas.user_answer_schema import AnswerSubmission, QuestionWithAnswers, AnswerDetail
 
 
-def create_or_update_user_answer(db: Session, user_id: int, question_id: int, answer_option_id: int):
-    # Attempt to fetch the corresponding option_text
-    answer_option = db.query(AnswerOption).filter(AnswerOption.id == answer_option_id).first()
-    if not answer_option:
-        raise ValueError(f"Invalid answer_option_id: {answer_option_id}")
+def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmission]):
+    """
+    Submits answers for a user, updating existing answers or adding new ones as needed.
 
-    answer_text = answer_option.option_text
+    :param db: Database session.
+    :param user_id: ID of the user submitting answers.
+    :param submissions: List of `AnswerSubmission` objects containing the answers.
+    """
+    for submission in submissions:
+        # Retrieve the question to ensure it exists
+        question = db.query(Models_Question).filter(Models_Question.id == submission.question_id).first()
+        if not question:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
 
-    # Check if an answer already exists to update or create a new one
-    answer = db.query(UserAnswer).filter(
-        UserAnswer.user_id == user_id,
-        UserAnswer.question_id == question_id
-    ).first()
+        # Delete existing answers for this question and user
+        db.query(Models_UserAnswer).filter(
+            Models_UserAnswer.user_id == user_id,
+            Models_UserAnswer.question_id == submission.question_id
+        ).delete(synchronize_session='fetch')
+        db.flush()
 
-    if answer:
-        answer.answer_option_id = answer_option_id
-        answer.answer_text = answer_text
-    else:
-        answer = UserAnswer(
-            user_id=user_id,
-            question_id=question_id,
-            answer_option_id=answer_option_id,
-            answer_text=answer_text
+        # Validate submissions for questions that do not support multiple answers
+        # Ensure submission.answer_option_ids is not None before checking its length
+        if not question.supports_multiple_answers and submission.answer_option_ids and len(
+                submission.answer_option_ids) > 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="This question does not support multiple answers.")
+
+        # Handle submissions based on question type
+        if question.question_type == QuestionType.free_text and submission.answer_text:
+            # Add free text answer
+            db.add(Models_UserAnswer(
+                user_id=user_id,
+                question_id=submission.question_id,
+                answer_text=submission.answer_text
+            ))
+        elif question.question_type == QuestionType.multiple_choice_with_text and submission.answer_text:
+            # Handle "Other" option for multiple choice with text
+            # WARNING: DO NOT pass the option id if you already pass answer text in the response the, code will match the
+            # answer text and match it to the answer with "Other"
+            # TODO: Change Other
+            other_option_id = next(
+                (option.id for option in question.answer_options if "Other (Please specify)" in option.option_text),
+                None)
+            db.add(Models_UserAnswer(
+                user_id=user_id,
+                question_id=submission.question_id,
+                answer_option_id=other_option_id,
+                answer_text=submission.answer_text
+            ))
+
+        # Handle multiple choice submissions
+        if submission.answer_option_ids:
+            for option_id in submission.answer_option_ids:
+                db.add(Models_UserAnswer(
+                    user_id=user_id,
+                    question_id=submission.question_id,
+                    answer_option_id=option_id,
+                    answer_text=None  # Text is handled separately
+                ))
+
+        db.commit()
+
+
+def get_question_with_user_answers(db: Session, user_id: int) -> List[QuestionWithAnswers]:
+    """
+    Retrieves all questions along with the user's answers.
+
+    :param db: Database session.
+    :param user_id: ID of the user whose answers are to be retrieved.
+    :return: `List of QuestionWithAnswers` objects.
+    """
+    detailed_questions = db.query(Models_Question).all()
+    user_responses = []
+
+    for question in detailed_questions:
+        user_answers = db.query(Models_UserAnswer).filter_by(user_id=user_id, question_id=question.id).all()
+        question_detail = QuestionWithAnswers(
+            id=question.id,
+            question_text=question.question_text,
+            question_type=question.question_type.name,
+            supports_multiple_answers=question.supports_multiple_answers,
+            user_answers=[AnswerDetail.from_orm(ans) for ans in user_answers]
         )
-        db.add(answer)
+        user_responses.append(question_detail)
 
+    return user_responses
+
+
+def delete_user_answers(db: Session, user_id: int) -> bool:
+    """
+    Deletes all answers associated with a specific user.
+
+    :param db: Database session.
+    :param user_id: ID of the user whose answers are to be deleted.
+    :return: True if any rows were deleted, otherwise False.
+    """
+    rows_deleted = db.query(Models_UserAnswer).filter(
+        Models_UserAnswer.user_id == user_id
+    ).delete(synchronize_session='fetch')
     db.commit()
-    return answer
 
-
-def get_user_answers(db: Session, user_id: int):
-    return db.query(UserAnswer).filter_by(user_id=user_id).all()
-
-
-def get_user_answers_with_question_text(db: Session, user_id: int):
-    return db.query(UserAnswer, Question.question_text).join(Question, UserAnswer.question_id == Question.id).filter(
-        UserAnswer.user_id == user_id).all()
-
-
-def get_user_answers_with_details(db: Session, user_id: int):
-    return db.query(UserAnswer, Question, AnswerOption) \
-        .join(Question, UserAnswer.question_id == Question.id) \
-        .join(AnswerOption, UserAnswer.answer_option_id == AnswerOption.id) \
-        .filter(UserAnswer.user_id == user_id) \
-        .all()
+    return rows_deleted > 0
