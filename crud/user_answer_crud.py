@@ -21,7 +21,19 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
         # Retrieve the question to ensure it exists
         question = db.query(Models_Question).filter(Models_Question.id == submission.question_id).first()
         if not question:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Question with ID {submission.question_id} not found.")
+
+        # Validate for duplicated IDs in answer_option_ids
+        if submission.answer_option_ids and len(submission.answer_option_ids) != len(set(submission.answer_option_ids)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Duplicate answer option IDs found for question ID {submission.question_id}.")
+        # Validate each answer_option_id against the question's valid options
+        valid_option_ids = {option.id for option in question.answer_options}
+        invalid_option_ids = set(submission.answer_option_ids or []) - valid_option_ids
+        if invalid_option_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Invalid answer option IDs {list(invalid_option_ids)} for question ID {submission.question_id}.")
 
         # Delete existing answers for this question and user
         db.query(Models_UserAnswer).filter(
