@@ -68,7 +68,6 @@ def get_all_files(db: Session, file_type: Optional[DikaiologitikaType] = None) -
     """
     query = db.query(Dikaiologitika)
     if file_type:
-        print(Dikaiologitika.type == file_type)
         query = query.filter(Dikaiologitika.type == file_type)
     return query.all()
 

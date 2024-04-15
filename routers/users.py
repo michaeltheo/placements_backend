@@ -1,3 +1,4 @@
+from datetime import timedelta, datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -15,6 +16,8 @@ router = APIRouter(
     prefix='/user',
     tags=['user']
 )
+# Calculate the expiration time as 6 hours from the current time
+expires_time = datetime.now(timezone.utc) + timedelta(hours=6)
 
 
 @router.get('/', response_model=ResponseWrapper[List[User]], status_code=status.HTTP_200_OK)
@@ -63,7 +66,14 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
         # If user exists, determine if they are an admin and generate a new access token.
         admin_status = is_admin(db_user)
         access_token = create_access_token(data={"sub": str(db_user.id)})
-        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+        response.set_cookie(
+            key="placements_access_token",
+            value=access_token,
+            httponly=True,
+            expires=expires_time,
+            samesite="lax",  # Sets the SameSite attribute to Lax
+            # TODO: Change 'path' to match the domain when deployed
+        )
         user_response = UserCreateResponse(
             id=db_user.id,
             first_name=db_user.first_name,
