@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Type
 
+import pytz
 from sqlalchemy.orm import Session
 
 from models import Dikaiologitika, DikaiologitikaType
@@ -8,7 +9,7 @@ from schemas.dikaiologitika_schema import DikaiologitikaCreate
 
 
 def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, user_id: int,
-                          file_path: str) -> Dikaiologitika:
+                          file_path: str, file_name: str) -> Dikaiologitika:
     """
     Creates a new document (dikaiologitika) record in the database.
 
@@ -21,11 +22,17 @@ def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, use
     Returns:
     - Dikaiologitika: The created document record.
     """
+    utc_now = datetime.utcnow()
+    utc_now = utc_now.replace(tzinfo=pytz.utc)  # Make the datetime timezone-aware in UTC
+    local_tz = pytz.timezone('Europe/Athens')  # For Greece
+    local_time = utc_now.astimezone(local_tz)  # Convert to local timezone
+
     db_dikaiologitika = Dikaiologitika(
         user_id=user_id,
         file_path=file_path,
-        date=datetime.utcnow(),
-        type=dikaiologitika.type
+        date=local_time,
+        type=dikaiologitika.type,
+        file_name=file_name
     )
     db.add(db_dikaiologitika)
     db.commit()
@@ -86,7 +93,7 @@ def get_file_by_id(db: Session, file_id: int) -> Optional[Dikaiologitika]:
     return db.query(Dikaiologitika).filter(Dikaiologitika.id == file_id).first()
 
 
-def update_file_path(db: Session, file_id: int, new_file_path: str) -> bool:
+def update_file_path(db: Session, file_id: int, new_file_path: str, file_name: str) -> bool:
     """
     Updates the file path of an existing document.
 
@@ -99,9 +106,14 @@ def update_file_path(db: Session, file_id: int, new_file_path: str) -> bool:
     - bool: True if the update was successful, False otherwise.
     """
     db_file = db.query(Dikaiologitika).filter(Dikaiologitika.id == file_id).first()
+    utc_now = datetime.utcnow()
+    utc_now = utc_now.replace(tzinfo=pytz.utc)  # Make the datetime timezone-aware in UTC
+    local_tz = pytz.timezone('Europe/Athens')  # For Greece
+    local_time = utc_now.astimezone(local_tz)  # Convert to local timezone
     if db_file:
+        db_file.file_name = file_name
         db_file.file_path = new_file_path
-        db_file.date = datetime.utcnow()
+        db_file.date = local_time
         db.commit()
         return True
     return False

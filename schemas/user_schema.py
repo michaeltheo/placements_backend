@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserRole(str, Enum):
@@ -70,6 +70,7 @@ class UserCreateResponse(User):
     - The Config class might be misconfigured here with 'from_attributes'. If the intention is to enable ORM mode, it should be 'from_attributes=True'.
     """
     isAdmin: bool
+    accessToken: str = Field(..., description="Access token for the user")
 
     @property
     def isAdmin(self) -> bool:

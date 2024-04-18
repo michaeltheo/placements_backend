@@ -40,6 +40,7 @@ class Dikaiologitika(DikaiologitikaBase):
     - file_path (str): The file path where the document is stored.
     - date (datetime): The date when the document was uploaded.
     """
+    file_name: str
     id: int
     user_id: int
     file_path: str

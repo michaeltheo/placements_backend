@@ -71,6 +71,7 @@ async def upload_dikaiologitika_endpoint(
     dikaiologitika = create_dikaiologitika(
         db=db,
         dikaiologitika=DikaiologitikaCreate(type=type.value),
+        file_name=file.filename,
         user_id=current_user.id,
         file_path=file_location
     )
@@ -198,7 +199,8 @@ async def update_dikaiologitika_file_endpoint(
         file_object.write(file.file.read())
 
     # Update the database record with the new file path
-    new_update_file = update_file_path(db=db, file_id=dikaiologitika_id, new_file_path=new_file_location)
+    new_update_file = update_file_path(db=db, file_id=dikaiologitika_id, new_file_path=new_file_location,
+                                       file_name=file.filename)
     if not new_update_file:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
 

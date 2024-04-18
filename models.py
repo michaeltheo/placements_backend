@@ -46,6 +46,7 @@ class Dikaiologitika(Base):
     file_path = Column(String)
     date = Column(DateTime)
     type = Column(SQLAlchemyEnum(DikaiologitikaType))
+    file_name = Column(String)
 
     user = relationship("Users", back_populates='dikaiologitika')
 

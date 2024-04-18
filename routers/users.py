@@ -80,7 +80,8 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
             last_name=db_user.last_name,
             AM=db_user.AM,
             role=db_user.role.value,
-            isAdmin=admin_status
+            isAdmin=admin_status,
+            accessToken=access_token
         )
     else:
         # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
@@ -90,14 +91,15 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
         # Determine if the new user is an admin and generate a new access token.
         admin_status = is_admin(new_user)
         access_token = create_access_token(data={"sub": str(new_user.id)})
-        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, secure=True)
         user_response = UserCreateResponse(
             id=new_user.id,
             first_name=new_user.first_name,
             last_name=new_user.last_name,
             AM=new_user.AM,
             role=new_user.role.value,
-            isAdmin=admin_status
+            isAdmin=admin_status,
+            accessToken=access_token,
         )
     return ResponseWrapper(data=user_response, message=Message(detail="User processed successfully"))
 

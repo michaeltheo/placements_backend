@@ -36,7 +36,8 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             last_name=user.last_name,
             AM=user.AM,
             role=user.role.value,
-            isAdmin=admin_status
+            isAdmin=admin_status,
+            accessToken=access_token
         )
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
