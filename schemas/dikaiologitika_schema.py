@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -9,9 +10,10 @@ class DikaiologitikaType(str, Enum):
     Enum defining the possible types of documents (Dikaiologitika).
     Each type represents a different category of document that a user can submit.
     """
-    Type1 = "Type1"
-    Type2 = "Type2"
-    Type3 = "Type3"
+    BebaiosiPraktikis = "BebaiosiPraktikis"
+    AitisiForeaGiaApasxolisiFoititi = "AitisiForeaGiaApasxolisiFoititi"
+    BebaiosiApasxolisis = "BebaiosiApasxolisis"
+    AsfalisiAskoumenou = "AsfalisiAskoumenou"
 
 
 class DikaiologitikaBase(BaseModel):
@@ -45,6 +47,7 @@ class Dikaiologitika(DikaiologitikaBase):
     user_id: int
     file_path: str
     date: datetime
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True  # Enables ORM mode for compatibility with ORMs like SQLAlchemy.

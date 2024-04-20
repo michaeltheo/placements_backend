@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ router = APIRouter(prefix='/dikaiologitika',
                    tags=['dikaiologitika'])
 
 
-@router.get("/types", response_model=ResponseWrapper[List[str]], status_code=status.HTTP_200_OK)
+@router.get("/types", response_model=ResponseWrapper[List[Dict[str, str]]], status_code=status.HTTP_200_OK)
 async def get_dikaiologitika_types_endpoint():
     """
        Provides a list of all available dikaiologitika types defined in the system. This endpoint allows users
@@ -28,8 +28,11 @@ async def get_dikaiologitika_types_endpoint():
        Returns:
        - ResponseWrapper[List[str]]: A wrapped response containing a list of dikaiologitika types with a success message.
        """
-    types_list = [e.value for e in DikaiologitikaType]
-    return ResponseWrapper(data=types_list, message=Message(detail="List of all Dikaiologitika types"))
+    types_with_descriptions = [
+        {"type": type_.value, "description": DikaiologitikaType.get_description(type_)}
+        for type_ in DikaiologitikaType
+    ]
+    return ResponseWrapper(data=types_with_descriptions, message=Message(detail="List of all Dikaiologitika types"))
 
 
 @router.post("/", response_model=ResponseWrapper[Dikaiologitika], status_code=status.HTTP_200_OK)
@@ -66,7 +69,6 @@ async def upload_dikaiologitika_endpoint(
 
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
-
     # Create the dikaiologitika record in the database
     dikaiologitika = create_dikaiologitika(
         db=db,
@@ -109,7 +111,18 @@ async def read_files_for_user_endpoint(
 
     files = get_files_by_user_id(db, user_id=user_id, file_type=file_type)
     user = get_user_by_id(db, user_id)
-    files_models = [Dikaiologitika.from_orm(file) for file in files]
+    # Enhance each Dikaiologitika model with a description
+    files_models = []
+    for file in files:
+        file_model = Dikaiologitika.from_orm(file)
+        if isinstance(file_model.type, str):
+            # Convert the string value back to an enum member before getting the description
+            enum_member = DikaiologitikaType[file_model.type]
+            file_model.description = DikaiologitikaType.get_description(enum_member)
+        else:
+            file_model.description = DikaiologitikaType.get_description(file_model.type)
+        files_models.append(file_model)
+
     user_model = User.from_orm(user)
     files_and_user = FileAndUser(files=files_models, user=user_model)
     return ResponseWrapper(data=files_and_user, message=Message(detail="Files retrieved"))
@@ -244,7 +257,7 @@ async def download_file_endpoint(file_id: int, db: Session = Depends(get_db),
     return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/octet-stream')
 
 
-@router.delete("/{file_id}/", response_model=Message)
+@router.get("/{file_id}/", response_model=Message)
 async def delete_file_endpoint(
         file_id: int,
         db: Session = Depends(get_db),

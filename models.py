@@ -13,9 +13,20 @@ class UserRole(Enum):
 
 
 class DikaiologitikaType(Enum):
-    Type1 = "Type1"
-    Type2 = "Type2"
-    Type3 = "Type3"
+    BebaiosiPraktikis = "BebaiosiPraktikis"
+    AitisiForeaGiaApasxolisiFoititi = "AitisiForeaGiaApasxolisiFoititi"
+    BebaiosiApasxolisis = "BebaiosiApasxolisis"
+    AsfalisiAskoumenou = "AsfalisiAskoumenou"
+
+    @staticmethod
+    def get_description(type_member):
+        descriptions = {
+            DikaiologitikaType.BebaiosiPraktikis: "Βεβαίωση Πρακτικής",
+            DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi: "Αίτηση Φορέα Απασχόλησης Φοιτητή",
+            DikaiologitikaType.BebaiosiApasxolisis: "Βεβαίωση Απασχόλησης",
+            DikaiologitikaType.AsfalisiAskoumenou: "Ασφάλιση Ασκούμενου",
+        }
+        return descriptions.get(type_member, "Unknown Type")
 
 
 class QuestionType(str, Enum):
