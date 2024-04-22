@@ -19,7 +19,7 @@ app.include_router(auth_router)
 
 models.Base.metadata.create_all(bind=engine)
 
-origins = ["http://localhost:3000"]
+origins = ["http://localhost:3000", "http://localhost:8000"]
 
 # Add CORSMiddleware to the application
 app.add_middleware(

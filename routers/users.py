@@ -1,16 +1,15 @@
 from datetime import timedelta, datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from core.auth import create_access_token
 from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
 from dependencies import get_db, get_current_user
 from models import Users
 from schemas.response import ResponseWrapper, Message
-from schemas.user_schema import User, UserCreate, UserCreateResponse
+from schemas.user_schema import User, UserBase
 
 router = APIRouter(
     prefix='/user',
@@ -41,8 +40,8 @@ async def read_users_endpoint(db: Session = Depends(get_db)):
     return ResponseWrapper(data=users, message=Message(detail="Users fetched succesfully"))
 
 
-@router.post("/", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
-def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
+# @router.post("/", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
+def create_return_user_endpoint(user_data: UserBase, db: Session):
     """
        Endpoint to create a new user or return an existing one based on the Academic Number (AM).
 
@@ -61,47 +60,14 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
        - ResponseWrapper[UserCreateResponse]: A wrapped response containing the user's details and a success message.
        """
     # Check if a user with the provided AM exists in the database.
-    db_user = get_user_by_AM(db, user_data.AM)
-    if db_user:
-        # If user exists, determine if they are an admin and generate a new access token.
-        admin_status = is_admin(db_user)
-        access_token = create_access_token(data={"sub": str(db_user.id)})
-        response.set_cookie(
-            key="placements_access_token",
-            value=access_token,
-            httponly=True,
-            expires=expires_time,
-            samesite="lax",  # Sets the SameSite attribute to Lax
-            # TODO: Change 'path' to match the domain when deployed
-        )
-        user_response = UserCreateResponse(
-            id=db_user.id,
-            first_name=db_user.first_name,
-            last_name=db_user.last_name,
-            AM=db_user.AM,
-            role=db_user.role.value,
-            isAdmin=admin_status,
-            accessToken=access_token
-        )
-    else:
+    print(db)
+    db_user = get_user_by_AM(db, user_data['AM'])
+    if not db_user:
         # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
         user_dict = user_data.dict(exclude_unset=True)
         # Create a new user in the database.
-        new_user = create_user(db=db, user=user_dict)
-        # Determine if the new user is an admin and generate a new access token.
-        admin_status = is_admin(new_user)
-        access_token = create_access_token(data={"sub": str(new_user.id)})
-        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, secure=True)
-        user_response = UserCreateResponse(
-            id=new_user.id,
-            first_name=new_user.first_name,
-            last_name=new_user.last_name,
-            AM=new_user.AM,
-            role=new_user.role.value,
-            isAdmin=admin_status,
-            accessToken=access_token,
-        )
-    return ResponseWrapper(data=user_response, message=Message(detail="User processed successfully"))
+        db_user = create_user(db=db, user=user_dict)
+    return db_user
 
 
 @router.get("/{user_id}/", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)

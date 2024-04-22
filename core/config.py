@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # The duration in minutes after which an access token expires.
     ACCESS_TOKEN_EXPIRES_MINUTES: int = 600
 
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    IEE_TOKEN_ENDPOINT: str = "https://login.iee.ihu.gr/token"
+    IEE_PROFILE_ENDPOINT: str = "https://api.iee.ihu.gr/profile"
+
     class Config:
         # Path to the .env file from which environment-specific variables can be read.
         env_file = ".env"

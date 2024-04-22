@@ -1,15 +1,21 @@
 # auth_router.py
+import uuid
+from datetime import datetime, timezone, timedelta
 from secrets import token_urlsafe
+from urllib.parse import urlencode
 
+import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Cookie, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 from jose import jwt
 from sqlalchemy.orm import Session
 from starlette import status
 
-from core.auth import verify_jwt
+from core.auth import verify_jwt, create_access_token
+from core.config import Settings
 from crud.user_crud import get_user_by_id, is_admin
 from dependencies import get_db
+from routers.users import create_return_user_endpoint
 from schemas.response import ResponseWrapper, Message
 from schemas.user_schema import UserCreateResponse
 
@@ -18,13 +24,16 @@ router = APIRouter(
     tags=['Authentication']
 )
 
+settings = Settings()
+csrf_tokens = {}
+expires_time = datetime.now(timezone.utc) + timedelta(hours=6)
+
 
 @router.get("/verify-token", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
 def verify_token_endpoint(response: Response, access_token: str = Cookie(None, alias="placements_access_token"),
                           db: Session = Depends(get_db)):
     # Generate a CSRF token in every call
     # csrf_token = token_urlsafe(16)
-    print(access_token)
     try:
         if not access_token:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not provided")
@@ -71,30 +80,105 @@ def verify_token_endpoint(response: Response, access_token: str = Cookie(None, a
 def login(response: RedirectResponse):
     # Generate a CSRF token
     csrf_token = token_urlsafe()
-    print('login', csrf_token)
-    # You might want to store this CSRF token in a database associated with the session/user
-    # For simplicity, we're storing it in a cookie here
-
-    # response.set_cookie(key="csrf_token", value=csrf_token, httponly=True, samesite='none', secure=True)
-    response.set_cookie(key="csrf_token", value=csrf_token, httponly=False, secure=True, samesite="lax")
+    csrf_tokens[csrf_token] = uuid.uuid4()
 
     # Define your parameters
-    client_id = "64493671d44156030a26af5c"
+    client_id = settings.CLIENT_ID
     response_type = "code"
     scope = "profile,ldap,id,cn,announcements"
     redirect_uri = "http://localhost:3000/auth"
 
     # Construct the redirect URL
-    auth_url = f"https://login.it.teithe.gr/authorization/?client_id={client_id}&response_type={response_type}&scope={scope}&redirect_uri={redirect_uri}&state={csrf_token}"
+    auth_url = f"https://login.it.teithe.gr/authorization?client_id={client_id}&response_type={response_type}&scope={scope}&redirect_uri={redirect_uri}&state={csrf_token}"
+
     return RedirectResponse(url=auth_url)
 
 
-@router.get("/auth")
-async def auth(code: str, state: str, csrf_token: str = Cookie(None)):
-    print(state, csrf_token)
-    if not csrf_token or state != csrf_token:
-        raise HTTPException(status_code=400, detail="Invalid CSRF token")
+class TokenResponse:
+    def __init__(self, access_token: str, refresh_token: int, user: dict):
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+        self.user = user
 
+
+async def fetch_token(code: str) -> TokenResponse | None:
+    body = {
+        "client_id": settings.CLIENT_ID,
+        "client_secret": settings.CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(settings.IEE_TOKEN_ENDPOINT, data=urlencode(body), headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json"
+            }) as response:
+                data = await response.json()
+                return TokenResponse(**data)
+    except aiohttp.ClientError as e:
+        print("Token fetch error:", e)
+        return None
+
+
+async def fetch_profile(access_token: str) -> dict | None:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(settings.IEE_PROFILE_ENDPOINT, headers={
+                "x-access-token": access_token,
+            }) as response:
+                data = await response.json()
+                print(data)
+                return data
+    except aiohttp.ClientError as e:
+        print("Profile fetch error:", e)
+        return None
+
+
+@router.get("/verifyLogin", status_code=status.HTTP_200_OK)
+async def auth(response: Response, code: str, state: str, db: Session = Depends(get_db)):
+    print(code, " ", state, csrf_tokens)
+    if state not in csrf_tokens:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token")
+    del csrf_tokens[state]
     # If the token is valid, you would proceed with your logic, such as exchanging the code for an access token
 
-    return {"message": "CSRF token validated successfully"}
+    token_response = await fetch_token(code)
+    if not token_response or not token_response.access_token:
+        raise HTTPException(status_code=401, detail="Failed to obtain access token")
+    user_profile = await fetch_profile(token_response.access_token)
+
+    if not user_profile:
+        raise HTTPException(status_code=401, detail="Failed to fetch user profile")
+
+    user_data = {
+        "first_name": user_profile["cn"],
+        "last_name": user_profile["sn"],
+        "AM": user_profile["am"]
+    }
+    print(user_data)
+    print(user_data.keys())
+    db_user = create_return_user_endpoint(user_data, db)
+    admin_status = is_admin(db_user)
+    access_token = create_access_token(data={"sub": str(db_user.id)})
+    response.set_cookie(
+        key="placements_access_token",
+        value=access_token,
+        httponly=True,
+        secure=False,  # Set to True when deploying over HTTPS
+        expires=expires_time,
+        samesite="none",  # Might need to be "None" for cross-origin requests, remember to use Secure as well
+    )
+
+    user_response = UserCreateResponse(
+        id=db_user.id,
+        first_name=db_user.first_name,
+        last_name=db_user.last_name,
+        AM=db_user.AM,
+        role=db_user.role.value,
+        isAdmin=admin_status,
+        placementsAccessToken=access_token,
+        ihuAccessToken=token_response.access_token,
+        ihuRefreshToken=token_response.refresh_token
+    )
+    return response
