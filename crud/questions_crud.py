@@ -129,12 +129,12 @@ def get_questions_statistics(db: Session) -> List[dict]:
         # Extract "Other" option details
         other_option_details = next(
             ({'option_id': oc.answer_option_id, 'text': oc.option_text, 'count': 0} for oc in option_counts if
-             oc.option_text == "Other (Please specify)"), None)
+             oc.option_text == "Άλλο"), None)
 
         statistics = []
         for oc in option_counts:
             # Directly append predefined option counts
-            if oc.option_text != "Other (Please specify)":
+            if oc.option_text != "Άλλο":
                 statistics.append({
                     'option_id': oc.answer_option_id,
                     'text': oc.option_text,

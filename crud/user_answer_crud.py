@@ -63,7 +63,7 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
             # answer text and match it to the answer with "Other"
             # TODO: Change Other
             other_option_id = next(
-                (option.id for option in question.answer_options if "Other (Please specify)" in option.option_text),
+                (option.id for option in question.answer_options if "Άλλο" in option.option_text),
                 None)
             db.add(Models_UserAnswer(
                 user_id=user_id,
