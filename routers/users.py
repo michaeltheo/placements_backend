@@ -1,15 +1,15 @@
 from datetime import timedelta, datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
 from core.auth import create_access_token
 from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
 from dependencies import get_db, get_current_user
-from models import Users
-from schemas.response import ResponseWrapper, Message
+from models import Users, UserRole
+from schemas.response import ResponseWrapper, Message, ResponseTotalItems
 from schemas.user_schema import User, UserCreate, UserCreateResponse
 
 router = APIRouter(
@@ -20,25 +20,31 @@ router = APIRouter(
 expires_time = datetime.now(timezone.utc) + timedelta(hours=6)
 
 
-@router.get('/', response_model=ResponseWrapper[List[User]], status_code=status.HTTP_200_OK)
-async def read_users_endpoint(db: Session = Depends(get_db)):
-    """
-    Retrieves a list of all users registered in the system.
+@router.get('/', response_model=ResponseTotalItems[List[User]], status_code=status.HTTP_200_OK)
+async def read_users_endpoint(db: Session = Depends(get_db),
+                              am: str = Query(None, description="Filter users by Academic Number (AM)"),
+                              role: str = Query(None, description="Filter users by role"),
+                              page: int = Query(1, description="Page number"),
+                              items_per_page: int = Query(10, description="Number of items per page")):
+    query = db.query(Users)
+    if am:
+        query = query.filter(Users.AM.ilike(f"%{am}%"))
+    if role:
+        query = query.filter(Users.role == UserRole(role))
 
-    This endpoint does not implement specific access control and is intended to provide a comprehensive
-    list of users. Implementing access controls, such as allowing only admins to fetch this list, may be necessary
-    depending on the application's security requirements.
+    total_items = query.count()
 
-    Parameters:
-    - db (Session): Dependency injection of the database session to access the database.
+    offset = (page - 1) * items_per_page
+    if items_per_page == -1:
+        users = query.offset(offset).all()
+    else:
+        users = query.offset(offset).limit(items_per_page).all()
 
-    Returns:
-    - ResponseWrapper[List[User]]: A list of all users wrapped in a standard response structure, along with a success message.
-    """
-    # Retrieve all users from the database.
-    users = db.query(Users).all()
-    # Return the list of users.
-    return ResponseWrapper(data=users, message=Message(detail="Users fetched succesfully"))
+    return ResponseTotalItems(
+        data=users,
+        total_items=total_items,
+        message=Message(detail="Users fetched successfully")
+    )
 
 
 @router.post("/", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
