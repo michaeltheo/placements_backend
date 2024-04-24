@@ -134,11 +134,23 @@ def get_questions_statistics(db: Session) -> List[dict]:
         statistics = []
         for oc in option_counts:
             # Directly append predefined option counts
-            if oc.option_text != "Άλλο":
+            statistics.append({
+                'option_id': oc.answer_option_id,
+                'text': oc.option_text,
+                'count': oc.count
+            })
+
+        # Include options with count 0
+        all_option_ids = {stat['option_id'] for stat in statistics}
+        all_options = db.query(Models_Answer_Option).filter(
+            Models_Answer_Option.question_id == question.id
+        ).all()
+        for option in all_options:
+            if option.id not in all_option_ids:
                 statistics.append({
-                    'option_id': oc.answer_option_id,
-                    'text': oc.option_text,
-                    'count': oc.count
+                    'option_id': option.id,
+                    'text': option.option_text,
+                    'count': 0
                 })
 
         free_text_responses = []
