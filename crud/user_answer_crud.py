@@ -57,20 +57,19 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
                 question_id=submission.question_id,
                 answer_text=submission.answer_text
             ))
-        elif question.question_type == QuestionType.multiple_choice_with_text and submission.answer_text:
-            # Handle "Other" option for multiple choice with text
-            # WARNING: DO NOT pass the option id if you already pass answer text in the response the, code will match the
-            # answer text and match it to the answer with "Other"
-            # TODO: Change Other
-            other_option_id = next(
-                (option.id for option in question.answer_options if "'Αλλο" in option.option_text),
-                None)
-            db.add(Models_UserAnswer(
-                user_id=user_id,
-                question_id=submission.question_id,
-                answer_option_id=other_option_id,
-                answer_text=submission.answer_text
-            ))
+        if question.question_type == QuestionType.multiple_choice_with_text:
+            other_option_id = next((option.id for option in question.answer_options if option.option_text == "Άλλο"),
+                                   None)
+            if other_option_id and other_option_id in submission.answer_option_ids:
+                # "Άλλο" option is selected and there is an answer text
+                db.add(Models_UserAnswer(
+                    user_id=user_id,
+                    question_id=submission.question_id,
+                    answer_option_id=other_option_id,
+                    answer_text=submission.answer_text  # Save the answer text here
+                ))
+                # Remove the other_option_id from the answer_option_ids list to avoid adding it again
+                submission.answer_option_ids.remove(other_option_id)
 
         # Handle multiple choice submissions
         if submission.answer_option_ids:
