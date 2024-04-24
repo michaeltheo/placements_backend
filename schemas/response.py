@@ -53,5 +53,9 @@ class ResponseWrapper(GenericModel, Generic[DataT]):
     data: Optional[DataT]
     message: Optional[Message]
 
+
+class ResponseTotalItems(ResponseWrapper):
+    total_items: int = Field(0, description="Total number of items available for paginated responses.")
+
     class Config:
         from_attributes = True
