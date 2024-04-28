@@ -107,6 +107,16 @@ def delete_question(db: Session, question_id: int) -> bool:
 
 
 def get_questions_statistics(db: Session) -> List[dict]:
+    """
+    Retrieve statistics for each question from the database.
+
+    Args:
+        db (Session): Database session.
+
+    Returns:
+        List[dict]: List of dictionaries containing question statistics.
+    """
+    # Retrieve questions from the database
     questions = db.query(Models_Question).filter(
         Models_Question.question_type.in_([QuestionType.multiple_choice, QuestionType.multiple_choice_with_text])
     ).all()
@@ -131,27 +141,34 @@ def get_questions_statistics(db: Session) -> List[dict]:
             ({'option_id': oc.answer_option_id, 'text': oc.option_text, 'count': 0} for oc in option_counts if
              oc.option_text == "Άλλο"), None)
 
-        statistics = []
+        statistics_dict = {}  # Use a dictionary to store unique option counts
+
+        # Populate statistics dictionary with option counts
         for oc in option_counts:
-            # Directly append predefined option counts
-            statistics.append({
-                'option_id': oc.answer_option_id,
-                'text': oc.option_text,
-                'count': oc.count
-            })
+            if oc.answer_option_id in statistics_dict:
+                # If the option_id already exists, update count by adding current count
+                statistics_dict[oc.answer_option_id]['count'] += oc.count
+            else:
+                # If the option_id is not seen yet, add it to the dictionary
+                statistics_dict[oc.answer_option_id] = {
+                    'option_id': oc.answer_option_id,
+                    'text': oc.option_text,
+                    'count': oc.count
+                }
 
         # Include options with count 0
-        all_option_ids = {stat['option_id'] for stat in statistics}
         all_options = db.query(Models_Answer_Option).filter(
             Models_Answer_Option.question_id == question.id
         ).all()
         for option in all_options:
-            if option.id not in all_option_ids:
-                statistics.append({
+            if option.id not in statistics_dict:
+                statistics_dict[option.id] = {
                     'option_id': option.id,
                     'text': option.option_text,
                     'count': 0
-                })
+                }
+
+        statistics = list(statistics_dict.values())  # Convert dictionary values back to a list
 
         free_text_responses = []
         if question.question_type == QuestionType.multiple_choice_with_text and other_option_details:
@@ -162,12 +179,15 @@ def get_questions_statistics(db: Session) -> List[dict]:
                 Models_UserAnswer.answer_text.isnot(None)
             ).all()
             free_text_responses = [answer.answer_text for answer in free_text_answers]
-            # Update "Other" option count to include free text responses
-            other_option_details['count'] = len(free_text_responses)
-            statistics.append(other_option_details)  # Append "Other" details with updated count
+            # Update "Other" option count to include unique free text responses
+            unique_responses = set(free_text_responses)  # Remove duplicates
+            other_option_details['count'] = len(unique_responses)
+            statistics_dict[other_option_details['option_id']] = other_option_details
 
-        total_responses = sum(stat['count'] for stat in statistics)
+        # Calculate total responses
+        total_responses = sum(stat['count'] for stat in statistics_dict.values())
 
+        # Append question statistics to the stats_list
         stats_list.append({
             'question_id': question.id,
             'question_text': question.question_text,
