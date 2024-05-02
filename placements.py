@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 import models
 from database import engine
@@ -21,6 +22,7 @@ models.Base.metadata.create_all(bind=engine)
 
 origins = ["http://localhost:3000"]
 
+SECRET_KEY = "your_secret_key_here"
 # Add CORSMiddleware to the application
 app.add_middleware(
     CORSMiddleware,
@@ -28,4 +30,12 @@ app.add_middleware(
     allow_credentials=True,  # Whether to support cookies
     allow_methods=["*"],  # Which HTTP methods are allowed
     allow_headers=["*"],  # Which HTTP headers are allowed
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    session_cookie="session",  # Name of the cookie to store session data
+    max_age=86400,  # Optional: set max age for the session cookie, in seconds
+    https_only=False,  # Set to True in production to send cookie only over HTTPS
 )
