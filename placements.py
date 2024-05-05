@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 import models
+from core.config import settings
 from database import engine
 from routers.auth import router as auth_router
 from routers.dikaiologitika import router as dikaiologitika_router
@@ -22,7 +23,6 @@ models.Base.metadata.create_all(bind=engine)
 
 origins = ["http://localhost:3000"]
 
-SECRET_KEY = "your_secret_key_here"
 # Add CORSMiddleware to the application
 app.add_middleware(
     CORSMiddleware,
@@ -34,8 +34,8 @@ app.add_middleware(
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY,
-    session_cookie="session",  # Name of the cookie to store session data
-    max_age=86400,  # Optional: set max age for the session cookie, in seconds
+    secret_key=settings.SECRET_KEY,
+    session_cookie="CSRF_TOKEN",  # Name of the cookie to store session data
+    max_age=10000,  # Optional: set max age for the session cookie, in seconds
     https_only=False,  # Set to True in production to send cookie only over HTTPS
 )

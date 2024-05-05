@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -68,3 +68,16 @@ def is_admin(user: Users) -> bool:
     - bool: True if the user is an admin, False otherwise.
     """
     return user.role == UserRole.ADMIN
+
+
+def split_full_name(fullName: str) -> Optional[Tuple[str, str]]:
+    if fullName:
+        # Split the value by space and return the first and last name
+        names = fullName.split()
+        print('Fullname', fullName)
+        first_name = names[0]
+        last_name = ' '.join(names[1:]) if len(names) > 1 else ''
+        print('FN', first_name)
+        print('LN', last_name)
+        return first_name, last_name
+    return None, None
