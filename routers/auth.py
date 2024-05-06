@@ -261,7 +261,6 @@ async def fetch_profile(token_data: dict) -> Optional[Dict[str, Union[str, int]]
     Returns:
     - Optional[Dict[str, Union[str, int]]]: Dictionary containing profile data.
     """
-    print(token_data)
     access_token = token_data.get('access_token')
     if not access_token:
         print("Access token not found in token response.")
