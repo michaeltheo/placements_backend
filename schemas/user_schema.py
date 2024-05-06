@@ -26,9 +26,9 @@ class UserBase(BaseModel):
     - last_name (str): The user's last name.
     - AM (str): Academic number or unique identifier for the user, specific to the educational context.
     """
-    first_name: str
-    last_name: str
-    AM: str
+    first_name: str = Field(..., description="The user's first name.")
+    last_name: str = Field(..., description="The user's last name.")
+    AM: str = Field(..., description="Academic number or unique identifier for the user.")
 
 
 class UserCreate(UserBase):
@@ -48,12 +48,17 @@ class User(UserBase):
     Attributes:
     - id (int): The unique identifier for the user, typically assigned by the database.
     - role (str): The role of the user, expressed as a string. This could be aligned with the UserRole enum for consistency.
-
-    Config:
-    - from_attributes (bool): Enable ORM mode for compatibility with databases. It appears there might be a typo or misconfiguration with 'from_attributes'. The intended usage likely was 'from_attributes=True'.
+    - fathers_name (str): The user's father's name.
+    - telephone_number (str): The user's telephone number.
+    - email (str): The user's email address.
+    - reg_year (str): The user's registration year.
     """
-    id: int
-    role: str
+    id: int = Field(..., description="The unique identifier for the user.")
+    role: str = Field(..., description="The role of the user.")
+    fathers_name: str = Field(..., description="The user's father's name.")
+    telephone_number: str = Field(..., description="The user's telephone number.")
+    email: str = Field(..., description="The user's email address.")
+    reg_year: str = Field(..., description="The user's registration year.")
 
     class Config:
         from_attributes = True  # Ensures compatibility with ORM objects by treating them as dictionaries.
@@ -65,17 +70,22 @@ class UserCreateResponse(User):
 
     Attributes:
     - isAdmin (bool): A computed field to easily indicate whether the user has administrative privileges, based on the 'role' attribute.
-
-    Config:
-    - The Config class might be misconfigured here with 'from_attributes'. If the intention is to enable ORM mode, it should be 'from_attributes=True'.
     """
-    isAdmin: bool
-    accessToken: str = Field(..., description="Access token for the user")
+    isAdmin: bool = Field(..., description="A flag indicating whether the user has administrative privileges.")
 
     @property
     def isAdmin(self) -> bool:
         """Determine if the user is an admin based on the role."""
         return self.role == UserRole.ADMIN.value
 
-    class Config:
-        from_attributes = True
+
+class UserLoginResponse(BaseModel):
+    """
+    Response schema for user login. It includes user details and tokens for placement, IHU access, and IHU refresh.
+
+    Attributes:
+    - user (UserCreateResponse): User details.
+    - tokens (dict): Tokens including placement, IHU access, and IHU refresh.
+    """
+    user: UserCreateResponse = Field(..., description="User details.")
+    tokens: dict = Field(..., description="Tokens including placement, IHU access, and IHU refresh.")
