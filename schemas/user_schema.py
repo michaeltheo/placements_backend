@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,9 +27,9 @@ class UserBase(BaseModel):
     - last_name (str): The user's last name.
     - AM (str): Academic number or unique identifier for the user, specific to the educational context.
     """
-    first_name: str = Field(..., description="The user's first name.")
-    last_name: str = Field(..., description="The user's last name.")
-    AM: str = Field(..., description="Academic number or unique identifier for the user.")
+    first_name: Optional[str] = Field(..., description="The user's first name.")
+    last_name: Optional[str] = Field(..., description="The user's last name.")
+    AM: Optional[str] = Field(..., description="Academic number or unique identifier for the user.")
 
 
 class UserCreate(UserBase):
@@ -43,22 +44,22 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     """
-    User model for representing a user in the system. It extends UserBase by adding attributes that are specific to a fully realized user entity.
+       User model for representing a user in the system. It extends UserBase by adding attributes that are specific to a fully realized user entity.
 
-    Attributes:
-    - id (int): The unique identifier for the user, typically assigned by the database.
-    - role (str): The role of the user, expressed as a string. This could be aligned with the UserRole enum for consistency.
-    - fathers_name (str): The user's father's name.
-    - telephone_number (str): The user's telephone number.
-    - email (str): The user's email address.
-    - reg_year (str): The user's registration year.
-    """
+       Attributes:
+       - id (int): The unique identifier for the user, typically assigned by the database.
+       - role (str): The role of the user, expressed as a string. This could be aligned with the UserRole enum for consistency.
+       - fathers_name (str, optional): The user's father's name.
+       - telephone_number (str, optional): The user's telephone number.
+       - email (str): The user's email address.
+       - reg_year (str, optional): The user's registration year.
+       """
     id: int = Field(..., description="The unique identifier for the user.")
     role: str = Field(..., description="The role of the user.")
-    fathers_name: str = Field(..., description="The user's father's name.")
-    telephone_number: str = Field(..., description="The user's telephone number.")
-    email: str = Field(..., description="The user's email address.")
-    reg_year: str = Field(..., description="The user's registration year.")
+    fathers_name: Optional[str] = Field(None, description="The user's father's name.")
+    telephone_number: Optional[str] = Field(None, description="The user's telephone number.")
+    email: Optional[str] = Field(None, description="The user's email address.")
+    reg_year: Optional[str] = Field(None, description="The user's registration year.")
 
     class Config:
         from_attributes = True  # Ensures compatibility with ORM objects by treating them as dictionaries.

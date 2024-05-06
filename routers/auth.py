@@ -194,21 +194,28 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
         # Fetch the user from the database using the user ID
         user = get_user_by_id(db, int(user_id))
         admin_status = is_admin(user)
-        user_response = UserCreateResponse(
-            id=user.id,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            AM=user.AM,
-            reg_year=user.reg_year,
-            fathers_name=user.fathers_name,
-            telephone_number=user.telephone_number,
-            email=user.email,
-            role=user.role.value,
-            isAdmin=admin_status,
-            accessToken=access_token
-        )
+        user_response_data = {
+            "id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "AM": user.AM,
+            "reg_year": user.reg_year,
+            "fathers_name": user.fathers_name,
+            "telephone_number": user.telephone_number,
+            "email": user.email,
+            "role": user.role.value,
+            "isAdmin": admin_status,
+            "accessToken": access_token
+        }
+        print(user_response_data)
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+            # Convert fields to None if they are None in the database
+        for field in ["fathers_name", "telephone_number", "reg_year", "email"]:
+            if user_response_data[field] is None:
+                user_response_data[field] = None
+
+        user_response = UserCreateResponse(**user_response_data)
         # Prepare a custom message
         success_message = f"Token verification was successful for user: {user.first_name} {user.last_name}"
         # Return the custom message

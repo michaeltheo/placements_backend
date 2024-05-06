@@ -90,7 +90,7 @@ async def read_files_for_user_endpoint(
         user_id: int,
         db: Session = Depends(get_db),
         file_type: Optional[DikaiologitikaType] = None,
-        current_user: Users = Depends(get_current_user)
+        current_user: Users = Depends(get_current_user),
 ):
     """
      Retrieves files for a specified user, filtered optionally by file type. Access is restricted to ensure

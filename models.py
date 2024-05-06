@@ -1,4 +1,5 @@
 from enum import Enum
+
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import relationship
@@ -40,11 +41,11 @@ class Users(Base):
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String)
     last_name = Column(String)
-    reg_year = Column(String)
-    fathers_name = Column(String)
-    telephone_number = Column(String)
-    email = Column(String)
-    AM = Column(String, unique=True)
+    reg_year = Column(String, nullable=True)
+    fathers_name = Column(String, nullable=True)
+    telephone_number = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    AM = Column(String, unique=True, nullable=True)
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.STUDENT)
 
     # Define the relationships here, within the Users class

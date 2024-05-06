@@ -10,7 +10,7 @@ from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
 from dependencies import get_db, get_current_user
 from models import Users, UserRole
 from schemas.response import ResponseWrapper, Message, ResponseTotalItems
-from schemas.user_schema import User, UserCreate, UserCreateResponse
+from schemas.user_schema import User, UserCreate
 
 router = APIRouter(
     prefix='/user',
@@ -47,7 +47,7 @@ async def read_users_endpoint(db: Session = Depends(get_db),
     )
 
 
-@router.post("/", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
+@router.post("/", response_model=ResponseWrapper, status_code=status.HTTP_200_OK)
 def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
     """
        Endpoint to create a new user or return an existing one based on the Academic Number (AM).
@@ -80,15 +80,19 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
             samesite="lax",  # Sets the SameSite attribute to Lax
             # TODO: Change 'path' to match the domain when deployed
         )
-        user_response = UserCreateResponse(
-            id=db_user.id,
-            first_name=db_user.first_name,
-            last_name=db_user.last_name,
-            AM=db_user.AM,
-            role=db_user.role.value,
-            isAdmin=admin_status,
-            accessToken=access_token
-        )
+        # user_response = UserCreateResponse(
+        #     id=db_user.id,
+        #     first_name=db_user.first_name,
+        #     last_name=db_user.last_name,
+        #     AM=db_user.AM,
+        #     role=db_user.role.value,
+        #     isAdmin=admin_status,
+        #     fathers_name=db_user.fathers_name,
+        #     reg_year=db_user.reg_year,
+        #     email=db_user.email,
+        #     telephone_number=db_user.telephone_number,
+        #     accessToken=access_token
+        # )
     else:
         # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
         user_dict = user_data.dict(exclude_unset=True)
@@ -98,16 +102,21 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
         admin_status = is_admin(new_user)
         access_token = create_access_token(data={"sub": str(new_user.id)})
         response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, secure=True)
-        user_response = UserCreateResponse(
-            id=new_user.id,
-            first_name=new_user.first_name,
-            last_name=new_user.last_name,
-            AM=new_user.AM,
-            role=new_user.role.value,
-            isAdmin=admin_status,
-            accessToken=access_token,
-        )
-    return ResponseWrapper(data=user_response, message=Message(detail="User processed successfully"))
+        # user_response = UserCreateResponse(
+        #     id=new_user.id,
+        #     first_name=new_user.first_name,
+        #     last_name=new_user.last_name,
+        #     AM=new_user.AM,
+        #     role=new_user.role.value,
+        #
+        #     fathers_name=new_user.fathers_name,
+        #     reg_year=new_user.reg_year,
+        #     email=new_user.email,
+        #     telephone_number=new_user.telephone_number,
+        #     isAdmin=admin_status,
+        #     accessToken=access_token,
+        # )
+    return ResponseWrapper(data={'access_token': access_token}, message=Message(detail="User processed successfully"))
 
 
 @router.get("/{user_id}/", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)

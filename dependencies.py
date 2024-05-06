@@ -1,5 +1,4 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer
+from fastapi import Depends, HTTPException, Cookie
 from jose import JWTError
 from sqlalchemy.orm import Session
 
@@ -16,9 +15,9 @@ def get_db():
         db.close()
 
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(HTTPBearer())):
+def get_current_user(db: Session = Depends(get_db), placements_access_token: str = Cookie(None)):
     try:
-        payload = verify_jwt(token.credentials)
+        payload = verify_jwt(placements_access_token)
         user_id: int = int(payload.get("sub"))
         if user_id is None:
             raise HTTPException(status_code=400, detail="Invalid token payload.")
