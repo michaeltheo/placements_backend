@@ -207,7 +207,6 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             "isAdmin": admin_status,
             "accessToken": access_token
         }
-        print(user_response_data)
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
             # Convert fields to None if they are None in the database
