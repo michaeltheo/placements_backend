@@ -45,6 +45,7 @@ async def auth_redirect_endpoint(request: Request):
     client_id = settings.CLIENT_ID
     state = secrets.token_hex(16)
     request.session['oauth_state'] = state
+    print(request.session['oauth_state'])
 
     params = {
         "client_id": client_id,
@@ -77,6 +78,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     code = data.get('code')
     # Retrieve OAuth state from the session
     session_state = request.session.get('oauth_state')
+    print(f"OAuth state from session: {session_state}, state from request: {state}")
     # Validate the state parameter
     if session_state != state:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid state parameter")
@@ -103,6 +105,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             value=access_token,
             httponly=True,
             expires=expires_time,
+            secure=True,
             samesite="lax",  # Sets the SameSite attribute to Lax
             # TODO: Change 'path' to match the domain when deployed
         )
@@ -143,6 +146,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             key="placements_access_token",
             value=access_token,
             httponly=True,
+            secure=True,
             expires=expires_time,
             samesite="lax",  # Sets the SameSite attribute to Lax
             # TODO: Change 'path' to match the domain when deployed

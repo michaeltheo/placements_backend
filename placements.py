@@ -26,16 +26,17 @@ origins = ["http://localhost:3000"]
 # Add CORSMiddleware to the application
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Which origins are allowed
-    allow_credentials=True,  # Whether to support cookies
-    allow_methods=["*"],  # Which HTTP methods are allowed
-    allow_headers=["*"],  # Which HTTP headers are allowed
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="CSRF_TOKEN",  # Name of the cookie to store session data
-    max_age=10000,  # Optional: set max age for the session cookie, in seconds
-    https_only=False,  # Set to True in production to send cookie only over HTTPS
+    max_age=None,  # Optional: set max age for the session cookie, in seconds
+    https_only=False,  # Change to `True` in production with HTTPS
+    same_site='lax'
 )
