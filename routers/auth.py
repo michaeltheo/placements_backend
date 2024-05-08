@@ -30,22 +30,22 @@ expires_time = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TO
 
 
 @router.get("/redirect", status_code=status.HTTP_200_OK)
-async def auth_redirect_endpoint(request: Request):
+async def auth_redirect_endpoint(request: Request, response: Response):
     """
-     Redirects the user to the authentication provider for authorization.
+    Redirects the user to the authentication provider for authorization.
 
-     Parameters:
-     - request: The request object.
+    Parameters:
+    - request: The request object.
 
-     Returns:
-     - RedirectResponse: Redirects the user to the authentication provider.
-     """
+    Returns:
+    - RedirectResponse: Redirects the user to the authentication provider.
+    """
     redirect_uri = "http://localhost:3000/auth"
     scope = "profile,ldap,id,cn,announcements"
     client_id = settings.CLIENT_ID
     state = secrets.token_hex(16)
-    request.session['oauth_state'] = state
-    print(request.session['oauth_state'])
+    request.session['oauth_state'] = state  # Store in session
+    print(f"Session OAuth State: {request.session['oauth_state']}")
 
     params = {
         "client_id": client_id,
@@ -61,16 +61,16 @@ async def auth_redirect_endpoint(request: Request):
 @router.post('/login', response_model=ResponseWrapper[UserLoginResponse], status_code=status.HTTP_200_OK)
 async def authenticate_login(request: Request, response: Response, db: Session = Depends(get_db)):
     """
-       Authenticates the user login by fetching token and profile data from the authentication provider.
+    Authenticates the user login by fetching token and profile data from the authentication provider.
 
-       Parameters:
-       - request (Request): The request object.
-       - response (Response): The response object.
-       - db (Session): The database session.
+    Parameters:
+    - request (Request): The request object.
+    - response (Response): The response object.
+    - db (Session): The database session.
 
-       Returns:
-       - ResponseWrapper[UserLoginResponse]: Response containing user details and tokens.
-       """
+    Returns:
+    - ResponseWrapper[UserLoginResponse]: Response containing user details and tokens.
+    """
     # Extract data from the request
     data = await request.json()
     # Retrieve state and code from the data
@@ -82,14 +82,17 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     # Validate the state parameter
     if session_state != state:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid state parameter")
+
     # Fetch Token from IHU IEE
     token = await fetch_token(code)
     if token is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch token")
+
     # Fetch profile data from IHU IEE using the obtained token
     profile_data = await fetch_profile(token)
     if profile_data is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch profile")
+
     # Retrieve academic number (AM) from profile data and check if the user exists in the database
     am = profile_data.get('am')
 
@@ -106,8 +109,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             httponly=True,
             expires=expires_time,
             secure=True,
-            samesite="lax",  # Sets the SameSite attribute to Lax
-            # TODO: Change 'path' to match the domain when deployed
+            samesite="lax",
         )
         # Create response for existing user
         user_response = UserCreateResponse(
@@ -122,7 +124,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             role=db_user.role.value,
             isAdmin=admin_status,
         )
-
     else:
         # Split full name into first name and last name
         first_name, last_name = split_full_name(profile_data.get('cn;lang-el'))
@@ -138,7 +139,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         }
         # Create new user in the database
         new_user = create_user(db=db, user=new_user_data)
-        # Determine if the new user is an admin and generate a new access token.
+        # Determine if the new user is an admin and generate a new access token
         admin_status = is_admin(new_user)
         access_token = create_access_token(data={"sub": str(new_user.id)})
         # Set access token as cookie
@@ -146,10 +147,9 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             key="placements_access_token",
             value=access_token,
             httponly=True,
-            secure=True,
             expires=expires_time,
-            samesite="lax",  # Sets the SameSite attribute to Lax
-            # TODO: Change 'path' to match the domain when deployed
+            secure=True,
+            samesite="lax",
         )
         user_response = UserCreateResponse(
             id=new_user.id,
