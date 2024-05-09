@@ -77,6 +77,7 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
             value=access_token,
             httponly=True,
             expires=expires_time,
+            secure=True,
             samesite="lax",  # Sets the SameSite attribute to Lax
             # TODO: Change 'path' to match the domain when deployed
         )
@@ -101,7 +102,9 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
         # Determine if the new user is an admin and generate a new access token.
         admin_status = is_admin(new_user)
         access_token = create_access_token(data={"sub": str(new_user.id)})
-        response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True, secure=True)
+        response.set_cookie(key="placements_access_token", value=access_token, httponly=True, expires=expires_time,
+                            samesite="lax", secure=True
+                            )
         # user_response = UserCreateResponse(
         #     id=new_user.id,
         #     first_name=new_user.first_name,
