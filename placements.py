@@ -14,8 +14,8 @@ from routers.users import router as users_router
 origins = ["http://localhost:3000"]  # Update this as necessary
 
 app = FastAPI()
+cookie_expire_time = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
 
-# Add CORSMiddleware to the application
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -27,10 +27,13 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="auth_session",  # Use a unique cookie name
-    max_age=3600,  # Example: set max age for the session cookie, in seconds
+    max_age=cookie_expire_time,  # Example: set max age for the session cookie, in seconds
     https_only=False,  # Change to `True` in production with HTTPS
     same_site='lax',
 )
+# app.add_middleware(
+#     TrustedHostMiddleware, allowed_hosts=["localhost"]
+# )
 app.include_router(users_router)
 app.include_router(dikaiologitika_router)
 app.include_router(question_router)

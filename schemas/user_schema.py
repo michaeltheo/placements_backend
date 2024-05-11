@@ -15,6 +15,21 @@ class UserRole(str, Enum):
     """
     STUDENT = "student"
     ADMIN = "admin"
+    SUPER_ADMIN = 'super_admin'
+
+
+class Department(str, Enum):
+    """
+    Enum for user department
+
+    Values:
+    -IT_TEITHE: "Παλαίο Τμήμα Μηχανικών Πληροφορικής"
+    -EL_TEITHE: "Παλαιό Τμήμα Ηλεκτρονικής"
+    -ΙΗU_IEE: "Νέο Τμήμα Μηχανικών Πληροφορικής και Ηλεκτρονικών Συστημάτων"
+    """
+    IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
+    EL_TEITHE = 'ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
 class UserBase(BaseModel):
@@ -30,6 +45,7 @@ class UserBase(BaseModel):
     first_name: Optional[str] = Field(..., description="The user's first name.")
     last_name: Optional[str] = Field(..., description="The user's last name.")
     AM: Optional[str] = Field(..., description="Academic number or unique identifier for the user.")
+    department: Optional[Department] = Field(None, description="The department of the user.")
 
 
 class UserCreate(UserBase):
@@ -77,7 +93,7 @@ class UserCreateResponse(User):
     @property
     def isAdmin(self) -> bool:
         """Determine if the user is an admin based on the role."""
-        return self.role == UserRole.ADMIN.value
+        return self.role == UserRole.ADMIN.value or self.role == UserRole.SUPER_ADMIN.value
 
 
 class UserLoginResponse(BaseModel):

@@ -1,14 +1,14 @@
 from datetime import timedelta, datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
 from core.auth import create_access_token
-from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
+from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, is_super_admin
 from dependencies import get_db, get_current_user
-from models import Users, UserRole
+from models import Users, UserRole, Department
 from schemas.response import ResponseWrapper, Message, ResponseTotalItems
 from schemas.user_schema import User, UserCreate
 
@@ -20,17 +20,54 @@ router = APIRouter(
 expires_time = datetime.now(timezone.utc) + timedelta(hours=6)
 
 
+@router.get('/department-types', response_model=ResponseWrapper[List[str]], status_code=status.HTTP_200_OK)
+async def get_department_types_endpoint():
+    """
+       Provides a list of all available department types defined in the system.
+       Returns:
+       - ResponseWrapper[List[str]]: A wrapped response containing a list of department types with a success message.
+       """
+    return ResponseWrapper(data=Department, message=Message(detail="List of all Department types"))
+
+
 @router.get('/', response_model=ResponseTotalItems[List[User]], status_code=status.HTTP_200_OK)
-async def read_users_endpoint(db: Session = Depends(get_db),
-                              am: str = Query(None, description="Filter users by Academic Number (AM)"),
-                              role: str = Query(None, description="Filter users by role"),
-                              page: int = Query(1, description="Page number"),
-                              items_per_page: int = Query(10, description="Number of items per page")):
+async def read_users_endpoint(
+        db: Session = Depends(get_db),
+        am: Optional[str] = Query(None, description="Filter users by Academic Number (AM)"),
+        role: Optional[str] = Query(None, description="Filter users by role"),
+        department: Optional[Department] = Query(None, description="Filter users by department"),
+        page: int = Query(1, description="Page number"),
+        items_per_page: int = Query(10, description="Number of items per page")):
+    """
+    Retrieve users from the database with optional filters for AM, role, and department.
+
+    Parameters:
+    - db (Session): The database session.
+    - am (str): Filter by Academic Number.
+    - role (str): Filter by role.
+    - department (str): Filter by department.
+    - page (int): Page number for pagination.
+    - items_per_page (int): Number of items per page.
+
+    Returns:
+    - ResponseTotalItems[List[User]]: Response containing the filtered user list and total item count.
+    """
     query = db.query(Users)
+
     if am:
         query = query.filter(Users.AM.ilike(f"%{am}%"))
+
     if role:
-        query = query.filter(Users.role == UserRole(role))
+        try:
+            query = query.filter(Users.role == UserRole(role))
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role specified")
+
+    if department:
+        try:
+            query = query.filter(Users.department == Department(department))
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid department specified")
 
     total_items = query.count()
 
@@ -48,7 +85,7 @@ async def read_users_endpoint(db: Session = Depends(get_db),
 
 
 @router.post("/", response_model=ResponseWrapper, status_code=status.HTTP_200_OK)
-def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
+async def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
     """
        Endpoint to create a new user or return an existing one based on the Academic Number (AM).
 
@@ -123,8 +160,8 @@ def create_return_user_endpoint(response: Response, user_data: UserCreate, db: S
 
 
 @router.get("/{user_id}/", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)
-def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
-                            current_user: Users = Depends(get_current_user)):
+async def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
+                                  current_user: Users = Depends(get_current_user)):
     """
         Retrieves a specific user by their database ID.
 
@@ -154,3 +191,65 @@ def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
     # User found, return the user's information.
     return ResponseWrapper(data=db_user,
                            message=Message(detail="User retrieved successfully"))
+
+
+@router.put("/set-admin/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
+async def set_user_as_admin(user_id: int, db: Session = Depends(get_db),
+                            current_user: Users = Depends(get_current_user)):
+    """
+    Promote a user to admin if the current user is a superadmin.
+
+    Parameters:
+    - user_id (int): The ID of the user to promote.
+    - db (Session): The database session.
+    - current_user (Users): The current authenticated user.
+
+    Raises:
+    - HTTPException 403: If the current user is not a superadmin.
+    - HTTPException 404: If the target user does not exist.
+
+    Returns:
+    - Message: A message indicating the promotion status.
+    """
+    if not is_super_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is not super admin')
+    # Attempt to retrieve the requested user from the database.
+    db_user = get_user_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    db_user.role = UserRole.ADMIN
+    db.commit()
+    db.refresh(db_user)
+    return Message(
+        detail=f"User: {db_user.first_name} {db_user.last_name} promoted to admin.")
+
+
+@router.put("/set-student/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
+async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
+                              current_user: Users = Depends(get_current_user)):
+    """
+    Demote a user to student if the current user is a superadmin.
+
+    Parameters:
+    - user_id (int): The ID of the user to demote.
+    - db (Session): The database session.
+    - current_user (Users): The current authenticated user.
+
+    Raises:
+    - HTTPException 403: If the current user is not a superadmin.
+    - HTTPException 404: If the target user does not exist.
+
+    Returns:
+    - Message: A message indicating the demotion status.
+    """
+    if not is_super_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is not super admin')
+    # Attempt to retrieve the requested user from the database.
+    db_user = get_user_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    db_user.role = UserRole.STUDENT
+    db.commit()
+    db.refresh(db_user)
+    return Message(
+        detail=f"User: {db_user.first_name} {db_user.last_name} demoted to student.")

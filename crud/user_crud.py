@@ -2,7 +2,7 @@ from typing import Type, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from models import Users, UserRole
+from models import Users, UserRole, Department
 
 
 def get_user_by_AM(db: Session, AM: str) -> Type[Users] | None:
@@ -46,7 +46,6 @@ def create_user(db: Session, user: dict) -> Users:
     """
     # Extract the role and remove it from the dictionary to avoid conflict
     role_str = user.pop('role', None)  # Remove role from user dict and store its value
-
     # Convert the role string to the UserRole enum, defaulting to STUDENT if not provided
     role_value = UserRole.STUDENT if role_str is None else UserRole[role_str.upper()]
 
@@ -67,7 +66,20 @@ def is_admin(user: Users) -> bool:
     Returns:
     - bool: True if the user is an admin, False otherwise.
     """
-    return user.role == UserRole.ADMIN
+    return user.role == UserRole.ADMIN or user.role == UserRole.SUPER_ADMIN
+
+
+def is_super_admin(user: Users) -> bool:
+    """
+    Check if a given user has a super admin role.
+
+    Parameters:
+    - user (Users): An instance of the Users model.
+
+    Returns:
+    - bool: True if the user is a super admin, False otherwise.
+    """
+    return user.role == UserRole.SUPER_ADMIN
 
 
 def split_full_name(fullName: str) -> Optional[Tuple[str, str]]:
@@ -78,3 +90,16 @@ def split_full_name(fullName: str) -> Optional[Tuple[str, str]]:
         last_name = ' '.join(names[1:]) if len(names) > 1 else ''
         return first_name, last_name
     return None, None
+
+
+def determine_department(am: Optional[str]) -> Optional[Department]:
+    if am is None:
+        return None
+    if am.startswith('1'):
+        return Department.IT_TEITHE
+    elif am.startswith('5'):
+        return Department.EL_TEITHE
+    elif am.startswith('2'):
+        return Department.IHU_IEE
+    else:
+        return None
