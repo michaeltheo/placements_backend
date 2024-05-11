@@ -10,6 +10,13 @@ from database import Base
 class UserRole(Enum):
     STUDENT = "student"
     ADMIN = "admin"
+    SUPER_ADMIN = 'super_admin'
+
+
+class Department(Enum):
+    IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
+    EL_TEITHE = 'ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
 class DikaiologitikaType(Enum):
@@ -46,6 +53,7 @@ class Users(Base):
     telephone_number = Column(String, nullable=True)
     email = Column(String, nullable=True)
     AM = Column(String, unique=True, nullable=True)
+    department = Column(SQLAlchemyEnum(Department), nullable=True)
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.STUDENT)
 
     # Define the relationships here, within the Users class

@@ -15,7 +15,7 @@ from starlette.requests import Request
 from core.auth import create_access_token
 from core.auth import verify_jwt
 from core.config import settings
-from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, split_full_name
+from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, split_full_name, determine_department
 from dependencies import get_db
 from schemas.response import Message, ResponseWrapper
 from schemas.user_schema import UserCreateResponse, UserLoginResponse
@@ -95,7 +95,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
 
     # Retrieve academic number (AM) from profile data and check if the user exists in the database
     am = profile_data.get('am')
-
     db_user = get_user_by_AM(db, am)
     if db_user:
         # Determine if the user is an admin
@@ -122,16 +121,20 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             telephone_number=db_user.telephone_number,
             email=db_user.email,
             role=db_user.role.value,
+            department=db_user.department,
             isAdmin=admin_status,
         )
     else:
         # Split full name into first name and last name
         first_name, last_name = split_full_name(profile_data.get('cn;lang-el'))
+        # Find students department
+        department = determine_department(am)
         # Create new user data from profile data
         new_user_data = {
             'first_name': first_name,
             'last_name': last_name,
             'AM': am,
+            'department': department,
             'reg_year': profile_data.get('regyear'),
             'fathers_name': profile_data.get('fathersname;lang-el'),
             'telephone_number': profile_data.get('telephoneNumber'),
@@ -160,6 +163,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             telephone_number=new_user.telephone_number,
             email=new_user.email,
             AM=new_user.AM,
+            department=new_user.department,
             role=new_user.role.value,
             isAdmin=admin_status,
         )
@@ -207,6 +211,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             "fathers_name": user.fathers_name,
             "telephone_number": user.telephone_number,
             "email": user.email,
+            "department": user.department,
             "role": user.role.value,
             "isAdmin": admin_status,
             "accessToken": access_token

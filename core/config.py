@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
 
     # The duration in minutes after which an access token expires.
-    ACCESS_TOKEN_EXPIRES_MINUTES: int = 600
+    ACCESS_TOKEN_EXPIRES_MINUTES: int = 60
 
     # Client id / Secret id  of the application used to get access token from ihu
     CLIENT_ID: str

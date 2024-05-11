@@ -1,6 +1,9 @@
+from typing import Optional
+
 from fastapi import Depends, HTTPException, Cookie
 from jose import JWTError
 from sqlalchemy.orm import Session
+from starlette import status
 
 from core.auth import verify_jwt
 from crud.user_crud import get_user_by_id
@@ -15,16 +18,19 @@ def get_db():
         db.close()
 
 
-def get_current_user(db: Session = Depends(get_db), placements_access_token: str = Cookie(None)):
+def get_current_user(db: Session = Depends(get_db), placements_access_token: str = Cookie(None),
+                     auth_state: Optional[str] = Cookie(None)):
     try:
+        if placements_access_token is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload.")
         payload = verify_jwt(placements_access_token)
         user_id: int = int(payload.get("sub"))
         if user_id is None:
-            raise HTTPException(status_code=400, detail="Invalid token payload.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload.")
         # Fetch the user from the database using the user_id
         user = get_user_by_id(db, user_id)
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found.")
         return user
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token or expired token.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or expired token.")
