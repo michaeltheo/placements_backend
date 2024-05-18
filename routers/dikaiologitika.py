@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import FileResponse
 
+from core.constants import INTERNSHIP_PROGRAM_REQUIREMENTS
 from crud.dikaiologitika_crud import create_dikaiologitika, get_files_by_user_id, get_all_files, update_file_path, \
     get_file_by_id, delete_file
 from crud.user_crud import get_user_by_id, is_admin
 from dependencies import get_db, get_current_user
-from models import Users, DikaiologitikaType, Dikaiologitika as DikaiologitikaModels
+from models import Users, DikaiologitikaType, Dikaiologitika as DikaiologitikaModels, InternshipProgram
 from schemas.dikaiologitika_schema import DikaiologitikaCreate, Dikaiologitika
 from schemas.response import ResponseWrapper, Message, FileAndUser
 from schemas.user_schema import User
@@ -19,63 +20,68 @@ router = APIRouter(prefix='/dikaiologitika',
                    tags=['dikaiologitika'])
 
 
-@router.get("/types", response_model=ResponseWrapper[List[Dict[str, str]]], status_code=status.HTTP_200_OK)
+@router.get("/types", response_model=ResponseWrapper[Dict[str, List[Dict[str, str]]]], status_code=status.HTTP_200_OK)
 async def get_dikaiologitika_types_endpoint():
     """
-       Provides a list of all available dikaiologitika types defined in the system. This endpoint allows users
-       to understand what types of documents can be uploaded or queried, enhancing usability and data consistency.
+    Provides a list of all available dikaiologitika types required for each InternshipProgram. This endpoint
+    allows users to understand what types of documents are required for each internship program, enhancing usability
+    and data consistency.
 
-       Returns:
-       - ResponseWrapper[List[str]]: A wrapped response containing a list of dikaiologitika types with a success message.
-       """
-    types_with_descriptions = [
-        {"type": type_.value, "description": DikaiologitikaType.get_description(type_)}
-        for type_ in DikaiologitikaType
-    ]
-    return ResponseWrapper(data=types_with_descriptions, message=Message(detail="List of all Dikaiologitika types"))
+    Returns:
+    - ResponseWrapper[List[Dict[str, Dict[str, str]]]]: A wrapped response containing a list of internship programs
+      with their respective dikaiologitika types, descriptions, and submission times.
+    """
+    data = {
+        program.value: requirements
+        for program, requirements in INTERNSHIP_PROGRAM_REQUIREMENTS.items()
+    }
+    return ResponseWrapper(data=data,
+                           message=Message(detail="List of all Dikaiologitika types for each Internship Program"))
 
 
 @router.post("/", response_model=ResponseWrapper[Dikaiologitika], status_code=status.HTTP_200_OK)
 async def upload_dikaiologitika_endpoint(
         file: UploadFile = File(...),
         type: DikaiologitikaType = Form(...),
+        internship_program: InternshipProgram = Form(...),  # Add this line to get the internship program
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user)
 ):
     """
-      Uploads a new dikaiologitika (document) to the system, associating it with the current user. The endpoint
-      performs checks to ensure the uploaded file is a PDF and does not duplicate existing files (by name) under
-      the same user and type. It creates a new record in the database with the document's metadata.
+    Uploads a new dikaiologitika (document) to the system, associating it with the current user.
+    The endpoint performs checks to ensure the uploaded file is a PDF and does not duplicate existing files (by name)
+    under the same user and type. It creates a new record in the database with the document's metadata.
 
-      Parameters:
-      - file (UploadFile): The document file to upload, must be a PDF.
-      - type (DikaiologitikaType): The type of document being uploaded, selected from predefined options.
-      - db (Session): The database session for performing operations.
-      - current_user (Users): The user making the request, associated with the uploaded document.
+    Parameters:
+    - file (UploadFile): The document file to upload, must be a PDF.
+    - type (DikaiologitikaType): The type of document being uploaded, selected from predefined options.
+    - internship_program (InternshipProgram): The internship program the document is related to.
+    - db (Session): The database session for performing operations.
+    - current_user (Users): The user making the request, associated with the uploaded document.
 
-      Returns:
-      - ResponseWrapper[Dikaiologitika]: A wrapped response containing the newly created dikaiologitika record and a success message.
-      """
+    Returns:
+    - ResponseWrapper[Dikaiologitika]: A wrapped response containing the newly created dikaiologitika record and a success message.
+    """
     if file.content_type != 'application/pdf':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
 
-    # Ensuring the directory for the current user exists
     file_location = f"files/{current_user.id}/{type.value}/{file.filename}"
     existing_file = db.query(DikaiologitikaModels).filter_by(file_path=file_location).first()
     if existing_file:
-        # Handle the existing file scenario. For example, inform the user.
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A file with the same name already exists.")
     os.makedirs(os.path.dirname(file_location), exist_ok=True)
 
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
-    # Create the dikaiologitika record in the database
+
+    dikaiologitika_data = DikaiologitikaCreate(type=type.value)
     dikaiologitika = create_dikaiologitika(
         db=db,
-        dikaiologitika=DikaiologitikaCreate(type=type.value),
+        dikaiologitika=dikaiologitika_data,
         file_name=file.filename,
         user_id=current_user.id,
-        file_path=file_location
+        file_path=file_location,
+        internship_program=internship_program
     )
 
     return ResponseWrapper(
@@ -280,7 +286,8 @@ async def delete_file_endpoint(
         db_file = get_files_by_user_id(db, user_id=current_user.id, file_id=file_id)
         if not db_file:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized to delete this file.")
-    success = delete_file(db, file_id=file_id, user_id=current_user.id)
+    file_to_delete = get_file_by_id(db, file_id)
+    success = delete_file(db, file_id=file_id, user_id=file_to_delete.user_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
 

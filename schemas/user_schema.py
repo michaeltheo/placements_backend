@@ -19,14 +19,6 @@ class UserRole(str, Enum):
 
 
 class Department(str, Enum):
-    """
-    Enum for user department
-
-    Values:
-    -IT_TEITHE: "Παλαίο Τμήμα Μηχανικών Πληροφορικής"
-    -EL_TEITHE: "Παλαιό Τμήμα Ηλεκτρονικής"
-    -ΙΗU_IEE: "Νέο Τμήμα Μηχανικών Πληροφορικής και Ηλεκτρονικών Συστημάτων"
-    """
     IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
     EL_TEITHE = 'ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
     IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
@@ -78,7 +70,7 @@ class User(UserBase):
     reg_year: Optional[str] = Field(None, description="The user's registration year.")
 
     class Config:
-        from_attributes = True  # Ensures compatibility with ORM objects by treating them as dictionaries.
+        from_attributes = True
 
 
 class UserCreateResponse(User):

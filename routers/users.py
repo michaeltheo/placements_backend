@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from core.auth import create_access_token
+from core.config import settings
 from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, is_super_admin
 from dependencies import get_db, get_current_user
 from models import Users, UserRole, Department
@@ -17,7 +18,7 @@ router = APIRouter(
     tags=['user']
 )
 # Calculate the expiration time as 6 hours from the current time
-expires_time = datetime.now(timezone.utc) + timedelta(hours=6)
+expires_time = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRES_MINUTES)
 
 
 @router.get('/department-types', response_model=ResponseWrapper[List[str]], status_code=status.HTTP_200_OK)
@@ -134,6 +135,7 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
     else:
         # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
         user_dict = user_data.dict(exclude_unset=True)
+        print(user_dict)
         # Create a new user in the database.
         new_user = create_user(db=db, user=user_dict)
         # Determine if the new user is an admin and generate a new access token.
@@ -252,4 +254,4 @@ async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
     db.commit()
     db.refresh(db_user)
     return Message(
-        detail=f"User: {db_user.first_name} {db_user.last_name} demoted to student.")
+        detail=f"User: {db_user.first_name} {db_user.last_name} demoted vito student.")

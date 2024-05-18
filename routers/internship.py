@@ -1,0 +1,142 @@
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from starlette import status
+
+from crud.intership_crud import get_user_internship, get_internships_by_company, delete_internship, \
+    create_or_update_internship, update_internship_status, get_all_internships
+from crud.user_crud import is_admin
+from dependencies import get_db, get_current_user
+from models import Users, InternshipProgram, InternshipStatus
+from schemas.internship_schema import InternshipRead, InternshipCreate, InternshipAllRead
+from schemas.response import ResponseWrapper, Message, ResponseTotalItems
+
+router = APIRouter(
+    prefix='/internship',
+    tags=['internship']
+)
+
+
+@router.get("/all", response_model=ResponseTotalItems[List[InternshipAllRead]], status_code=status.HTTP_200_OK)
+async def get_all_internships_endpoint(
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user),
+        internship_status: Optional[InternshipStatus] = Query(None, description="Filter by Internship Status"),
+        program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
+        user_am: Optional[str] = Query(None, description="Filter by User AM"),
+        company_name: Optional[str] = Query(None, description="Filter by Company Name"),
+        page: int = Query(1, description="Page number"),
+        items_per_page: int = Query(10, description="Number of items per page")
+):
+    if not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can access this endpoint")
+
+    internships, total_items = get_all_internships(
+        db=db,
+        internship_status=internship_status,
+        program=program,
+        user_am=user_am,
+        company_name=company_name,
+        page=page,
+        items_per_page=items_per_page
+    )
+
+    return ResponseTotalItems(
+        data=internships,
+        total_items=total_items,
+        message=Message(detail="Fetched internships successfully")
+    )
+
+
+@router.post("/", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_201_CREATED)
+async def create_or_update_internship_endpoint(
+        internship: InternshipCreate,
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user)
+):
+    print(current_user.id)
+    """
+    Create a new internship or update an existing one. The user can only create/update their own internship.
+    """
+    new_internship = create_or_update_internship(db=db, user_id=current_user.id, internship_data=internship)
+    return ResponseWrapper(data=new_internship, message=Message(detail="Internship created or updated successfully"))
+
+
+@router.get('/company/{company_id}', response_model=ResponseTotalItems[List[InternshipRead]],
+            status_code=status.HTTP_200_OK)
+async def get_internships_by_company_endpoint(
+        company_id: int,
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user),
+        program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
+        page: int = Query(1, description="Page number"),
+        items_per_page: int = Query(10, description="Number of items per page")
+):
+    if not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail='User is not authorized to perform this operation.')
+
+    internships, total_items = get_internships_by_company(db, company_id, program, page, items_per_page)
+    if not internships:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No internships found for this company.")
+
+    return ResponseTotalItems(
+        data=internships,
+        total_items=total_items,
+        message=Message(detail='Fetched internships successfully')
+    )
+
+
+@router.get('/{user_id}', response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
+async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(get_db),
+                                          current_user: Users = Depends(get_current_user)):
+    internship = get_user_internship(db, user_id)
+    if internship is None:
+        return ResponseWrapper(data=None, message=Message(detail="No internship found for this user"))
+    return ResponseWrapper(data=internship, message=Message(
+        detail=f'Fetched intership for user {current_user.first_name} {current_user.last_name}'))
+
+
+@router.get("/delete/{internship_id}", response_model=Message, status_code=status.HTTP_200_OK)
+async def delete_internship_endpoint(internship_id: int, db: Session = Depends(get_db),
+                                     current_user: Users = Depends(get_current_user)):
+    """
+    Endpoint to delete a company. Only accessible by admin users.
+
+    Parameters:
+    - company_id (int): ID of the company to delete.
+    - db (Session): Database session dependency injection.
+    - current_user (Users): Current user performing the operation, injected from security context.
+
+    Returns:
+    - ResponseWrapper[Message]: A message indicating the outcome of the deletion process.
+    """
+    if not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="User is not authorized to perform this operation.")
+
+    deleted = delete_internship(db, internship_id)
+    if deleted:
+        return Message(detail="Internship successfully deleted.")
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Internship not found or could not be deleted.")
+
+
+@router.put("/{internship_id}", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
+async def update_internship_status_endpoint(
+        internship_id: int,
+        internship_status: InternshipStatus,
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user)
+):
+    """
+    Update the details of an internship, including its status. Only accessible by admin users.
+    """
+    if not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can update internship status")
+
+    updated_internship = update_internship_status(db=db, internship_id=internship_id,
+                                                  internship_status=internship_status)
+    return ResponseWrapper(data=updated_internship, message=Message(detail="Internship updated successfully"))

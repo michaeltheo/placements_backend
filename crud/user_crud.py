@@ -1,11 +1,11 @@
-from typing import Type, Optional, Tuple
+from typing import Optional, Tuple
 
 from sqlalchemy.orm import Session
 
 from models import Users, UserRole, Department
 
 
-def get_user_by_AM(db: Session, AM: str) -> Type[Users] | None:
+def get_user_by_AM(db: Session, AM: str) -> Optional[Users]:
     """
     Retrieve a user by their AM value.
 
@@ -14,12 +14,12 @@ def get_user_by_AM(db: Session, AM: str) -> Type[Users] | None:
     - AM (str): The AM value of the user.
 
     Returns:
-    - Users: An instance of the Users model or None if not found.
+    - Optional[Users]: An instance of the Users model or None if not found.
     """
     return db.query(Users).filter(Users.AM == AM).first()
 
 
-def get_user_by_id(db: Session, user_id: int) -> Type[Users] | None:
+def get_user_by_id(db: Session, user_id: int) -> Optional[Users]:
     """
     Retrieve a user by their database ID.
 
@@ -28,7 +28,7 @@ def get_user_by_id(db: Session, user_id: int) -> Type[Users] | None:
     - user_id (int): The ID of the user in the database.
 
     Returns:
-    - `Users`: An instance of the Users model or None if not found.
+    - Optional[Users]: An instance of the Users model or None if not found.
     """
     return db.query(Users).filter(Users.id == user_id).first()
 
@@ -42,7 +42,7 @@ def create_user(db: Session, user: dict) -> Users:
     - user (dict): A dictionary containing the user's information.
 
     Returns:
-    - `Users`: An instance of the newly created Users model.
+    - Users: An instance of the newly created Users model.
     """
     # Extract the role and remove it from the dictionary to avoid conflict
     role_str = user.pop('role', None)  # Remove role from user dict and store its value
@@ -83,8 +83,16 @@ def is_super_admin(user: Users) -> bool:
 
 
 def split_full_name(fullName: str) -> Optional[Tuple[str, str]]:
+    """
+    Split a full name into first and last names.
+
+    Parameters:
+    - fullName (str): The full name to split.
+
+    Returns:
+    - Optional[Tuple[str, str]]: A tuple containing the first name and last name.
+    """
     if fullName:
-        # Split the value by space and return the first and last name
         names = fullName.split()
         first_name = names[0]
         last_name = ' '.join(names[1:]) if len(names) > 1 else ''
@@ -93,6 +101,15 @@ def split_full_name(fullName: str) -> Optional[Tuple[str, str]]:
 
 
 def determine_department(am: Optional[str]) -> Optional[Department]:
+    """
+    Determine the department based on the AM value.
+
+    Parameters:
+    - am (Optional[str]): The AM value.
+
+    Returns:
+    - Optional[Department]: The determined department or None if the AM value is invalid.
+    """
     if am is None:
         return None
     if am.startswith('1'):

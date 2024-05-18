@@ -2,14 +2,47 @@ from datetime import datetime
 from typing import Optional, List, Type
 
 import pytz
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from starlette import status
 
-from models import Dikaiologitika, DikaiologitikaType
+from core.constants import INTERNSHIP_PROGRAM_REQUIREMENTS
+from models import Dikaiologitika, DikaiologitikaType, InternshipProgram, SubmissionTime
 from schemas.dikaiologitika_schema import DikaiologitikaCreate
 
 
+def determine_submission_time(internship_program: InternshipProgram,
+                              dikaiologitika_type: DikaiologitikaType) -> SubmissionTime:
+    # Retrieve the list of requirements for the specified internship program
+    requirements = INTERNSHIP_PROGRAM_REQUIREMENTS.get(internship_program, [])
+
+    # Initialize variables to store the submission times if found
+    end_submission_time = None
+    start_submission_time = None
+
+    # Iterate through the requirements for the given internship program
+    for requirement in requirements:
+        # Check if the requirement type matches the provided dikaiologitika type
+        if requirement['type'] == dikaiologitika_type.value:
+            # If the submission time is END, store it in end_submission_time
+            if requirement['submission_time'] == SubmissionTime.END.value:
+                end_submission_time = SubmissionTime(requirement['submission_time'])
+            # If the submission time is START, store it in start_submission_time
+            elif requirement['submission_time'] == SubmissionTime.START.value:
+                start_submission_time = SubmissionTime(requirement['submission_time'])
+
+    # Raise an error if no matching submission time is found
+    if end_submission_time:
+        return end_submission_time
+    if start_submission_time:
+        return start_submission_time
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Submission time not found for type {dikaiologitika_type.value} in program {internship_program.value}")
+
+
 def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, user_id: int,
-                          file_path: str, file_name: str) -> Dikaiologitika:
+                          file_path: str, file_name: str, internship_program: InternshipProgram) -> Dikaiologitika:
     """
     Creates a new document (dikaiologitika) record in the database.
 
@@ -18,10 +51,17 @@ def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, use
     - dikaiologitika (DikaiologitikaCreate): The document data to be saved.
     - user_id (int): The ID of the user the document belongs to.
     - file_path (str): The file path where the document is stored.
+    - file_name (str): The name of the file.
+    - internship_program (InternshipProgram): The internship program the document is related to.
 
     Returns:
     - Dikaiologitika: The created document record.
     """
+    if dikaiologitika.submission_time is None:
+        dikaiologitika.submission_time = determine_submission_time(internship_program, dikaiologitika.type)
+        if dikaiologitika.submission_time is None:
+            print('elousa')
+
     utc_now = datetime.utcnow()
     utc_now = utc_now.replace(tzinfo=pytz.utc)  # Make the datetime timezone-aware in UTC
     local_tz = pytz.timezone('Europe/Athens')  # For Greece
@@ -32,6 +72,7 @@ def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, use
         file_path=file_path,
         date=local_time,
         type=dikaiologitika.type,
+        submission_time=dikaiologitika.submission_time,  # Add submission time here
         file_name=file_name
     )
     db.add(db_dikaiologitika)
@@ -159,6 +200,7 @@ def delete_file(db: Session, file_id: int, user_id: int) -> bool:
     - bool: True if the document was successfully deleted, False if the document was not found.
     """
     db_file = db.query(Dikaiologitika).filter(Dikaiologitika.id == file_id, Dikaiologitika.user_id == user_id).first()
+    print(db_file, file_id, user_id)
     if db_file is None:
         return False
     db.delete(db_file)
