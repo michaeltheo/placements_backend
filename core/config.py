@@ -3,7 +3,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database connection URL, using SQLite for local development.
-    DATABASE_URL: str = "postgresql://postgres:root@localhost/PlacementsDatabase"
+    # DATABASE_URL: str = "postgresql://postgres:root@localhost/PlacementsDatabase"
+    DATABASE_URL: str = 'sqlite:///./placements.db'
 
     # Secret key for encoding and decoding JWT tokens.
     # Should be a long, random string in production.

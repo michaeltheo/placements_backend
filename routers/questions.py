@@ -48,7 +48,7 @@ async def admin_create_questions_endpoint(
         HTTPException if the current user is not an admin.
     """
     if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin ONLY")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User already has an active internship.")
     new_questions = []
     for question_data in questions_data:
         new_question = create_question_db(db, question_data)

@@ -15,7 +15,7 @@ router = APIRouter(prefix='/user_answers', tags=['user answers'])
 
 
 @router.post("/submit-answers/", response_model=Message, status_code=status.HTTP_200_OK)
-def submit_answers_endpoint(user_id: int, submissions: List[AnswerSubmission], db: Session = Depends(get_db),
+def submit_answers_endpoint(submissions: List[AnswerSubmission], db: Session = Depends(get_db),
                             current_user: Users = Depends(get_current_user)):
     """
     Submit answers for a user.
@@ -25,8 +25,6 @@ def submit_answers_endpoint(user_id: int, submissions: List[AnswerSubmission], d
     answers, multiple answer IDs can be provided.
 
     Parameters:
-    - user_id (int): The ID of the user submitting the answers. This is checked against the ID of the current user
-      to ensure users can only submit answers for themselves.
     - submissions (List[AnswerSubmission]): A list of submissions, each containing a question ID and answer IDs.
     - db (Session): Dependency injection of the database session.
     - current_user (Users): The current user making the request. Used to verify that the user_id matches the current user's ID.
@@ -37,11 +35,8 @@ def submit_answers_endpoint(user_id: int, submissions: List[AnswerSubmission], d
     Raises:
     - HTTPException: If the current_user's ID does not match the user_id, indicating an attempt to submit answers for another user.
     """
-    if current_user.id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Cannot submit answers for other user")
     # Call the CRUD operation to submit user answers
-    submit_user_answers(db, user_id, submissions)
+    submit_user_answers(db, current_user.id, submissions)
     return Message(detail='Answers submitted successfully')
 
 
