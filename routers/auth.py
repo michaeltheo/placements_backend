@@ -27,6 +27,8 @@ router = APIRouter(
 
 # Calculate the expiration time as X minutes from the current time
 expires_time = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRES_MINUTES)
+# Convert the expiration time from minutes to seconds
+expires_in_seconds = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
 
 
 @router.get("/redirect", status_code=status.HTTP_200_OK)
@@ -90,6 +92,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
 
     # Fetch profile data from IHU IEE using the obtained token
     profile_data = await fetch_profile(token)
+    print(profile_data)
     if profile_data is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch profile")
 
@@ -105,9 +108,10 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         response.set_cookie(
             key="placements_access_token",
             value=access_token,
-            httponly=True,
+            httponly=False,
             expires=expires_time,
-            secure=True,
+            secure=False,
+            max_age=expires_in_seconds,
             samesite="lax",
         )
         # Create response for existing user
@@ -149,9 +153,10 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         response.set_cookie(
             key="placements_access_token",
             value=access_token,
-            httponly=True,
+            httponly=False,
             expires=expires_time,
-            secure=True,
+            secure=False,
+            max_age=expires_in_seconds,
             samesite="lax",
         )
         user_response = UserCreateResponse(

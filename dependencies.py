@@ -19,6 +19,7 @@ def get_db():
 
 # Dependency to get the current user
 def get_current_user(db: Session = Depends(get_db), placements_access_token: str = Cookie(None)):
+    print(placements_access_token)
     try:
         # Check if the token is present
         if placements_access_token is None:

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
+from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship, get_internships_by_company, delete_internship, \
     create_or_update_internship, update_internship_status, get_all_internships
 from crud.user_crud import is_admin
@@ -49,7 +50,7 @@ async def get_all_internships_endpoint(
     )
 
 
-@router.post("/", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
 async def create_or_update_internship_endpoint(
         internship: InternshipCreate,
         db: Session = Depends(get_db),
@@ -93,8 +94,19 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
                                           current_user: Users = Depends(get_current_user)):
     internship = get_user_internship(db, user_id)
     if internship is None:
-        return ResponseWrapper(data=None, message=Message(detail="No internship found for this user"))
-    return ResponseWrapper(data=internship, message=Message(
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No internship found for this user.")
+    company = get_company(db, internship.company_id)
+    internship_response = InternshipRead(
+        id=internship.id,
+        user_id=internship.user_id,
+        company_id=internship.company_id,
+        program=internship.program,
+        start_date=internship.start_date,
+        end_date=internship.end_date,
+        status=internship.status,
+        company_name=company.name if company else None
+    )
+    return ResponseWrapper(data=internship_response, message=Message(
         detail=f'Fetched intership for user {current_user.first_name} {current_user.last_name}'))
 
 

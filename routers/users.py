@@ -19,6 +19,7 @@ router = APIRouter(
 )
 # Calculate the expiration time as 6 hours from the current time
 expires_time = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRES_MINUTES)
+expires_in_seconds = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
 
 
 @router.get('/department-types', response_model=ResponseWrapper[List[str]], status_code=status.HTTP_200_OK)
@@ -115,6 +116,7 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
             value=access_token,
             httponly=True,
             expires=expires_time,
+            max_age=expires_in_seconds,
             secure=True,
             samesite="lax",  # Sets the SameSite attribute to Lax
             # TODO: Change 'path' to match the domain when deployed
@@ -254,4 +256,4 @@ async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
     db.commit()
     db.refresh(db_user)
     return Message(
-        detail=f"User: {db_user.first_name} {db_user.last_name} demoted vito student.")
+        detail=f"User: {db_user.first_name} {db_user.last_name} demoted to student.")

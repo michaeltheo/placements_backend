@@ -6,7 +6,8 @@ from models import Companies
 from schemas.company_schema import CompanyBase
 
 
-def get_all_companies(db: Session, name: Optional[str] = None, page: int = 1, items_per_page: int = 10) -> (
+def get_all_companies(db: Session, name: Optional[str] = None, page: Optional[int] = None,
+                      items_per_page: Optional[int] = None) -> (
         List[Type[Companies]], int):
     """
     Retrieves all companies from the database with optional name filtering and pagination.
@@ -14,8 +15,8 @@ def get_all_companies(db: Session, name: Optional[str] = None, page: int = 1, it
     Parameters:
     - db (Session): Database session.
     - name (str, optional): Filter companies by name.
-    - page (int): Page number for pagination.
-    - items_per_page (int): Number of items per page.
+    - page (int, optional): Page number for pagination.
+    - items_per_page (int, optional): Number of items per page.
 
     Returns:
     - list: A list of company instances.
@@ -27,9 +28,12 @@ def get_all_companies(db: Session, name: Optional[str] = None, page: int = 1, it
         query = query.filter(Companies.name.ilike(f"%{name}%"))
 
     total_items = query.count()
-    offset = (page - 1) * items_per_page
 
-    companies = query.offset(offset).limit(items_per_page).all()
+    if page is not None and items_per_page is not None:
+        offset = (page - 1) * items_per_page
+        query = query.offset(offset).limit(items_per_page)
+
+    companies = query.all()
 
     return companies, total_items
 

@@ -21,8 +21,8 @@ router = APIRouter(
 async def read_all_companies_endpoint(
         db: Session = Depends(get_db),
         name: Optional[str] = Query(None, description="Filter companies by name"),
-        page: int = Query(1, description="Page number"),
-        items_per_page: int = Query(10, description="Number of items per page")
+        page: Optional[int] = Query(None, description="Page number"),
+        items_per_page: Optional[int] = Query(None, description="Number of items per page")
 ):
     """
     Fetches all companies from the database with optional name filtering and pagination.
@@ -30,11 +30,11 @@ async def read_all_companies_endpoint(
     Parameters:
     - db (Session): Database session.
     - name (str, optional): Filter companies by name.
-    - page (int): Page number for pagination.
-    - items_per_page (int): Number of items per page.
+    - page (int, optional): Page number for pagination.
+    - items_per_page (int, optional): Number of items per page.
 
     Returns:
-    - ResponseWrapper[List[Company]]: Filtered and paginated list of companies wrapped in a response wrapper.
+    - ResponseWrapper[List[Companies]]: Filtered and optionally paginated list of companies wrapped in a response wrapper.
     """
     companies, total_items = get_all_companies(db, name, page, items_per_page)
     return ResponseTotalItems(data=companies, total_items=total_items,

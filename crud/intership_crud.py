@@ -1,13 +1,13 @@
 from typing import Optional, List, Tuple
 
 from fastapi import HTTPException
-from schemas.internship_schema import InternshipCreate, InternshipAllRead
 from sqlalchemy.orm import Session
 from starlette import status
 
 from crud.company_crud import get_company
 from crud.user_crud import get_user_by_id
 from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies
+from schemas.internship_schema import InternshipCreate, InternshipAllRead
 
 
 def create_or_update_internship(db: Session, user_id: int, internship_data: InternshipCreate) -> InternshipModel:

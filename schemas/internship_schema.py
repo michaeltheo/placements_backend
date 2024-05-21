@@ -89,6 +89,7 @@ class InternshipRead(InternshipBase):
     """
     id: int
     user_id: int
+    company_name: Optional[str] = None
     status: InternshipStatus
 
     class Config:
