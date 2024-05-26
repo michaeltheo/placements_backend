@@ -197,7 +197,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
     - ResponseWrapper[UserCreateResponse]: Response containing user details.
     """
     if not access_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not provided")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not provided, try login.")
     try:
         # Verify the JWT and decode it to get the user information
         payload = verify_jwt(access_token)

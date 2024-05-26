@@ -10,10 +10,17 @@ class DikaiologitikaType(str, Enum):
     Enum defining the possible types of documents (Dikaiologitika).
     Each type represents a different category of document that a user can submit.
     """
-    BebaiosiPraktikis = "BebaiosiPraktikis"
+    BebaiosiPraktikisApoGramateia = "BebaiosiPraktikisApoGramateia"
     AitisiForeaGiaApasxolisiFoititi = "AitisiForeaGiaApasxolisiFoititi"
-    BebaiosiApasxolisis = "BebaiosiApasxolisis"
-    AsfalisiAskoumenou = "AsfalisiAskoumenou"
+    AntigraphoE3_5 = "AntigraphoE3_5"
+    BebaiosiEnsimonApoEfka = "BebaiosiEnsimonApoEfka"
+    ApodeixeisEjoflisisMinaiasApozimiosis = "ApodeixeisEjoflisisMinaiasApozimiosis"
+    AitisiOlokrirosisPraktikisAskisis = "AitisiOlokrirosisPraktikisAskisis"
+    AitisiPraktikis = "AitisiPraktikis"
+    DilosiAtomikonStoixeion = "DilosiAtomikonStoixeion"
+    YpeuthiniDilosiProsopikonDedomenon = "YpeuthiniDilosiProsopikonDedomenon"
+    DilosiMoriodotisi = "DilosiMoriodotisi"
+    YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
 
 
 class SubmissionTime(str, Enum):

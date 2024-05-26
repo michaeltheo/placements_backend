@@ -92,6 +92,7 @@ def get_internships_by_company(
         db: Session,
         company_id: int,
         program: Optional[InternshipProgram] = None,
+        internship_status: Optional[InternshipStatus] = None,
         page: int = 1,
         items_per_page: int = 10
 ) -> Tuple[List[InternshipModel], int]:
@@ -112,6 +113,8 @@ def get_internships_by_company(
 
     if program:
         query = query.filter(InternshipModel.program == program)
+    if internship_status:
+        query = query.filter(InternshipModel.status == internship_status)
 
     total_items = query.count()
     offset = (page - 1) * items_per_page
@@ -184,7 +187,7 @@ def get_all_internships(
     if program:
         query = query.filter(InternshipModel.program == program)
     if user_am:
-        query = query.join(Users).filter(Users.AM == user_am)
+        query = query.join(Users).filter(Users.AM.ilike(f"%{user_am}%"))
     if company_name:
         query = query.join(Companies).filter(Companies.name.ilike(f"%{company_name}%"))
 

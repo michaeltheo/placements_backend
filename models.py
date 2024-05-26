@@ -29,9 +29,10 @@ class Department(str, Enum):
 
 # Define internship programs
 class InternshipProgram(str, Enum):
-    OAED = "ΟΑΕΔ"
-    ESPA = "ΕΣΠΑ"
-    EMPLOYER_FINANCED = "Αποκλειστικά χρηματοδοτούμενη από εργοδότη"
+    TEITHE_OAED = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΟΑΕΔ"
+    ESPA = "ΠΑΛΑΙΟ/NEO ΤΜΗΜΑ ΕΣΠΑ"
+    TEITHE_JOB_RECOGNITION = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
+    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΝΕΟ ΤΜΗΜΑ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
 
 
 # Define internship statuses
@@ -43,18 +44,33 @@ class InternshipStatus(str, Enum):
 
 # Define document types with descriptions
 class DikaiologitikaType(Enum):
-    BebaiosiPraktikis = "BebaiosiPraktikis"
+    BebaiosiPraktikisApoGramateia = "BebaiosiPraktikisApoGramateia"
     AitisiForeaGiaApasxolisiFoititi = "AitisiForeaGiaApasxolisiFoititi"
-    BebaiosiApasxolisis = "BebaiosiApasxolisis"
-    AsfalisiAskoumenou = "AsfalisiAskoumenou"
+    AntigraphoE3_5 = "AntigraphoE3_5"
+    BebaiosiEnsimonApoEfka = "BebaiosiEnsimonApoEfka"
+    ApodeixeisEjoflisisMinaiasApozimiosis = "ApodeixeisEjoflisisMinaiasApozimiosis"
+    AitisiOlokrirosisPraktikisAskisis = "AitisiOlokrirosisPraktikisAskisis"
+    AitisiPraktikis = "AitisiPraktikis"
+    DilosiAtomikonStoixeion = "DilosiAtomikonStoixeion"
+    YpeuthiniDilosiProsopikonDedomenon = "YpeuthiniDilosiProsopikonDedomenon"
+    DilosiMoriodotisi = "DilosiMoriodotisi"
+    YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
 
     @staticmethod
     def get_description(type_member):
         descriptions = {
-            DikaiologitikaType.BebaiosiPraktikis: "Βεβαίωση Πρακτικής",
+            DikaiologitikaType.BebaiosiPraktikisApoGramateia: "Βεβαίωση πρακτικής από την γραμματεία",
             DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi: "Αίτηση Φορέα Απασχόλησης Φοιτητή",
-            DikaiologitikaType.BebaiosiApasxolisis: "Βεβαίωση Απασχόλησης",
-            DikaiologitikaType.AsfalisiAskoumenou: "Ασφάλιση Ασκούμενου",
+            DikaiologitikaType.AntigraphoE3_5: "Αντίγραφο του εντύπου Ε3.5. (λήξη) της Πρακτικής Άσκησης",
+            DikaiologitikaType.BebaiosiEnsimonApoEfka: "Βεβαίωση ενσήμων από το ΕΦΚΑ",
+            DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis: "Αποδείξεις εξόφλησης της μηνιαίας αποζημίωσης πρακτικής άσκησης του φορέα απασχόλησης μέσω του τραπεζικού σας λογαριασμού",
+            DikaiologitikaType.AitisiOlokrirosisPraktikisAskisis: "Αίτηση Ολοκλήρωσης Πρακτικής Άσκησης",
+            DikaiologitikaType.AitisiPraktikis: "Αίτηση πρακτικής",
+            DikaiologitikaType.DilosiAtomikonStoixeion: "Δήλωση Ατομικών Στοιχείων",
+            DikaiologitikaType.YpeuthiniDilosiProsopikonDedomenon: "Υπεύθυνη Δήλωση Προσωπικών Δεδομένων",
+            DikaiologitikaType.DilosiMoriodotisi: "Δήλωση Μοριοδότησης",
+            DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Εργοδότη",
+
         }
         return descriptions.get(type_member, "Unknown Type")
 

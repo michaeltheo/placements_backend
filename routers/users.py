@@ -78,7 +78,6 @@ async def read_users_endpoint(
         users = query.offset(offset).all()
     else:
         users = query.offset(offset).limit(items_per_page).all()
-
     return ResponseTotalItems(
         data=users,
         total_items=total_items,

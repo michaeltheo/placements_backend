@@ -56,7 +56,6 @@ async def create_or_update_internship_endpoint(
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user)
 ):
-    print(current_user.id)
     """
     Create a new internship or update an existing one. The user can only create/update their own internship.
     """
@@ -71,6 +70,7 @@ async def get_internships_by_company_endpoint(
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user),
         program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
+        internship_status: Optional[InternshipStatus] = Query(None, description="Filter by Internship Status"),
         page: int = Query(1, description="Page number"),
         items_per_page: int = Query(10, description="Number of items per page")
 ):
@@ -78,7 +78,8 @@ async def get_internships_by_company_endpoint(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail='User is not authorized to perform this operation.')
 
-    internships, total_items = get_internships_by_company(db, company_id, program, page, items_per_page)
+    internships, total_items = get_internships_by_company(db, company_id, program, internship_status, page,
+                                                          items_per_page)
     if not internships:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No internships found for this company.")
 

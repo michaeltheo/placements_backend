@@ -14,7 +14,7 @@ from routers.user_answers import router as user_answers_router
 from routers.users import router as users_router
 
 # Define allowed origins for CORS
-origins = ["http://localhost:3000"]
+origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 app = FastAPI()
 
@@ -26,8 +26,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Accept"],
 )
 
 # Add session middleware
