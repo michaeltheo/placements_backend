@@ -9,6 +9,19 @@ from schemas.question_schema import QuestionCreate, QuestionType, QuestionUpdate
 
 
 def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Question:
+    """
+    Create a new question in the database.
+
+    Parameters:
+        db (Session): The database session used for the operation.
+        question_data (QuestionCreate): The schema object containing data for the new question.
+
+    Returns:
+        Models_Question: The newly created question object.
+
+    Raises:
+        HTTPException: If the question type requires answer options but none are provided.
+    """
     if question_data.question_type in [QuestionType.multiple_choice,
                                        QuestionType.multiple_choice_with_text] and not question_data.answer_options:
         raise HTTPException(status_code=400, detail="Answer options are required for multiple choice questions.")
@@ -41,11 +54,11 @@ def get_questions(db: Session, questionnaire_type: Optional[QuestionnaireType] =
     Get all questions from the database, optionally filtering by questionnaire type.
 
     Parameters:
-    - db (Session): Database session.
-    - questionnaire_type (Optional[QuestionnaireType]): The type of questionnaire to filter by.
+        db (Session): The database session used for the operation.
+        questionnaire_type (Optional[QuestionnaireType]): The type of questionnaire to filter by (optional).
 
     Returns:
-    - List[Models_Question]: List of all questions, filtered by the questionnaire type if provided.
+        List[Models_Question]: A list of all questions, optionally filtered by the questionnaire type.
     """
     query = db.query(Models_Question)
     if questionnaire_type:
@@ -54,6 +67,20 @@ def get_questions(db: Session, questionnaire_type: Optional[QuestionnaireType] =
 
 
 def update_question(db: Session, question_id: int, question_update: QuestionUpdate) -> Union[Models_Question, None]:
+    """
+    Update an existing question in the database.
+
+    Parameters:
+        db (Session): The database session used for the operation.
+        question_id (int): The ID of the question to update.
+        question_update (QuestionUpdate): The schema object containing updated data for the question.
+
+    Returns:
+        Union[Models_Question, None]: The updated question object if found, otherwise None.
+
+    Raises:
+        ValueError: If attempting to add answer options to a free text question.
+    """
     db_question = db.query(Models_Question).filter(Models_Question.id == question_id).first()
     if not db_question:
         return None
@@ -90,11 +117,11 @@ def get_question_by_id(db: Session, question_id: int) -> Union[Models_Question, 
     Fetch a single question by its ID.
 
     Parameters:
-    - db (Session): Database session.
-    - question_id (int): The ID of the question to fetch.
+        db (Session): The database session used for the operation.
+        question_id (int): The ID of the question to fetch.
 
     Returns:
-    - Models_Question: The question instance if found, or None otherwise.
+        Union[Models_Question, None]: The question instance if found, or None otherwise.
     """
     return db.query(Models_Question).filter(Models_Question.id == question_id).first()
 
@@ -104,11 +131,11 @@ def delete_question(db: Session, question_id: int) -> bool:
     Delete a question from the database.
 
     Parameters:
-    - db (Session): Database session.
-    - question_id (int): The ID of the question to delete.
+        db (Session): The database session used for the operation.
+        question_id (int): The ID of the question to delete.
 
     Returns:
-    - bool: True if the question was successfully deleted, False otherwise.
+        bool: True if the question was successfully deleted, False otherwise.
     """
     db_question = db.query(Models_Question).filter(Models_Question.id == question_id).first()
     if db_question:
@@ -120,14 +147,14 @@ def delete_question(db: Session, question_id: int) -> bool:
 
 def get_questions_statistics(db: Session, questionnaire_type: QuestionnaireType) -> List[Dict]:
     """
-    Retrieve statistics for each question from the database filtered by the questionnaire type.
+    Retrieve statistics for each question from the database, filtered by the questionnaire type.
 
     Parameters:
-    - db (Session): Database session.
-    - questionnaire_type (QuestionnaireType): The type of questionnaire to filter questions by.
+        db (Session): The database session used for the operation.
+        questionnaire_type (QuestionnaireType): The type of questionnaire to filter questions by.
 
     Returns:
-    - List[Dict]: List of dictionaries containing question statistics.
+        List[Dict]: A list of dictionaries containing question statistics.
     """
     questions = db.query(Models_Question).filter(
         Models_Question.question_type.in_([QuestionType.multiple_choice, QuestionType.multiple_choice_with_text]),
