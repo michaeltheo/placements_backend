@@ -35,7 +35,6 @@ def submit_answers_endpoint(submissions: List[AnswerSubmission], db: Session = D
     Raises:
     - HTTPException: If the current_user's ID does not match the user_id, indicating an attempt to submit answers for another user.
     """
-    # Call the CRUD operation to submit user answers
     submit_user_answers(db, current_user.id, submissions)
     return Message(detail='Answers submitted successfully')
 

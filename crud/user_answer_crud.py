@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from models import UserAnswer as Models_UserAnswer, Question as Models_Question
+from models import UserAnswer as Models_UserAnswer, Question as Models_Question, AnswerOption
 from schemas.question_schema import QuestionType
 from schemas.user_answer_schema import AnswerSubmission, QuestionWithAnswers, AnswerDetail
 
@@ -92,19 +92,28 @@ def get_question_with_user_answers(db: Session, user_id: int) -> List[QuestionWi
     :param user_id: ID of the user whose answers are to be retrieved.
     :return: `List of QuestionWithAnswers` objects.
     """
-    detailed_questions = db.query(Models_Question).all()
     user_responses = []
+
+    detailed_questions = db.query(Models_Question).all()
 
     for question in detailed_questions:
         user_answers = db.query(Models_UserAnswer).filter_by(user_id=user_id, question_id=question.id).all()
-        question_detail = QuestionWithAnswers(
-            id=question.id,
-            question_text=question.question_text,
-            question_type=question.question_type.name,
-            supports_multiple_answers=question.supports_multiple_answers,
-            user_answers=[AnswerDetail.from_orm(ans) for ans in user_answers]
-        )
-        user_responses.append(question_detail)
+        if user_answers:
+            question_detail = QuestionWithAnswers(
+                id=question.id,
+                question_text=question.question_text,
+                question_type=question.question_type.value,
+                supports_multiple_answers=question.supports_multiple_answers,
+                user_answers=[
+                    AnswerDetail(
+                        answer_option_id=ans.answer_option_id,
+                        answer_text=ans.answer_text,
+                        answer_option_text=db.query(AnswerOption.option_text).filter_by(
+                            id=ans.answer_option_id).scalar() if ans.answer_option_id else None
+                    ) for ans in user_answers
+                ]
+            )
+            user_responses.append(question_detail)
 
     return user_responses
 

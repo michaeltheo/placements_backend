@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -9,7 +9,7 @@ from crud.questions_crud import create_question_db, get_questions, update_questi
 from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
 from models import Users, Question
-from schemas.question_schema import Question, QuestionCreate, QuestionUpdate, QuestionType
+from schemas.question_schema import Question, QuestionCreate, QuestionUpdate, QuestionType, QuestionnaireType
 from schemas.question_statistics import QuestionStatistics
 from schemas.response import ResponseWrapper, Message
 
@@ -17,7 +17,8 @@ router = APIRouter(prefix='/question', tags=['question'])
 
 
 @router.get('/types', response_model=ResponseWrapper[List[str]], status_code=status.HTTP_200_OK)
-async def get_questions_types_endpoint():
+async def get_questions_types_endpoint(
+):
     """
     Fetches and returns a list of all possible question types.
 
@@ -59,18 +60,22 @@ async def admin_create_questions_endpoint(
 
 
 @router.get('/', response_model=ResponseWrapper[List[Question]], status_code=status.HTTP_200_OK)
-def get_all_questions_endpoint(db: Session = Depends(get_db)):
+def get_all_questions_endpoint(
+        questionnaire_type: Optional[QuestionnaireType] = None,
+        db: Session = Depends(get_db)
+):
     """
-    Retrieves all questions from the database.
+    Retrieves all questions from the database, optionally filtering by questionnaire type.
 
     Parameters:
+    - questionnaire_type: Optional parameter to filter questions by their questionnaire type.
     - db: Database session dependency.
 
     Returns:
         A list of all question objects wrapped in a `ResponseWrapper` with a success message.
     """
-    db_questions = get_questions(db=db)
-    return ResponseWrapper(data=db_questions, message=Message(detail="All questions retrieved successfully"))
+    db_questions = get_questions(db=db, questionnaire_type=questionnaire_type)
+    return ResponseWrapper(data=db_questions, message=Message(detail="Questions retrieved successfully"))
 
 
 @router.put('/{id}', response_model=ResponseWrapper[Question], status_code=status.HTTP_200_OK)
@@ -135,21 +140,24 @@ async def admin_delete_question_endpoint(
 
 
 @router.get('/stats/answers', response_model=ResponseWrapper[List[QuestionStatistics]], status_code=status.HTTP_200_OK)
-async def admin_get_answers_statistics_endpoint(db: Session = Depends(get_db),
-                                                current_user: Users = Depends(get_current_user)):
+async def admin_get_answers_statistics_endpoint(
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user),
+        questionnaire_type: QuestionnaireType = Query(...,
+                                                      description="The type of questionnaire to filter statistics by")
+):
     """
-    Fetches and returns statistics for all questions, including answer distributions and free text responses, accessible only to admins.
+    Fetches and returns statistics for questions based on the questionnaire type, accessible only to admins.
 
-    This endpoint compiles statistics for each question in the database, particularly focusing on multiple choice and
+    This endpoint compiles statistics for each question in the database, focusing on multiple choice and
     multiple choice with free text questions. For each question, it calculates how many times each option was selected
-    and, for questions allowing free text responses, aggregates those responses as well. This functionality is intended
-    to provide admins with insights into how users are interacting with questions, which can be useful for understanding
-    user preferences, identifying trends, or improving the questions.
+    and, for questions allowing free text responses, aggregates those responses as well.
 
     Parameters:
     - db (Session): Dependency injection of the database session, used for querying the database.
     - current_user (Users): The current user making the request, injected automatically. This is used to verify
                              admin privileges before providing access to sensitive statistical data.
+    - questionnaire_type (QuestionnaireType): The type of questionnaire to filter statistics by.
 
     Returns:
     - ResponseWrapper[List[QuestionStatistics]]: A structured response that encapsulates the compiled statistics
@@ -163,5 +171,5 @@ async def admin_get_answers_statistics_endpoint(db: Session = Depends(get_db),
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin ONLY")
-    stats_list = get_questions_statistics(db=db)
+    stats_list = get_questions_statistics(db=db, questionnaire_type=questionnaire_type)
     return ResponseWrapper(data=stats_list, message=Message(detail="Statistics fetched successfully"))

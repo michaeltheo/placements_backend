@@ -21,17 +21,19 @@ class UserAnswerDetail(BaseModel):
 
 class AnswerDetail(BaseModel):
     """
-    Represents details of an answer submission, including option ID and/or text.
+    Represents details of an answer submission, including option ID, text, and option text.
 
     Attributes:
     - answer_option_id (Optional[int]): The ID of the selected answer option, if applicable.
     - answer_text (Optional[str]): The text of the user's answer, for questions allowing text responses.
+    - answer_option_text (Optional[str]): The text of the selected answer option, if applicable.
 
     Config:
     - from_attributes: Enables ORM mode for compatibility with ORM objects.
     """
     answer_option_id: Optional[int] = None
     answer_text: Optional[str] = None
+    answer_option_text: Optional[str] = None
 
     class Config:
         from_attributes = True

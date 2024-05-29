@@ -1,27 +1,14 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from models import Question as Models_Question, AnswerOption as Models_Answer_Option, UserAnswer as Models_UserAnswer
-from schemas.question_schema import QuestionCreate, QuestionType
+from schemas.question_schema import QuestionCreate, QuestionType, QuestionUpdate, QuestionnaireType
 
 
 def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Question:
-    """
-    Create a new question in the database.
-
-    Parameters:
-    - db (Session): Database session.
-    - question_data (QuestionCreate): Data for creating the question.
-
-    Returns:
-    - Models_Question: The created question instance.
-
-    Raises:
-    - HTTPException: If answer options are missing for multiple choice questions.
-    """
     if question_data.question_type in [QuestionType.multiple_choice,
                                        QuestionType.multiple_choice_with_text] and not question_data.answer_options:
         raise HTTPException(status_code=400, detail="Answer options are required for multiple choice questions.")
@@ -29,13 +16,13 @@ def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Que
     db_question = Models_Question(
         question_text=question_data.question_text,
         question_type=question_data.question_type,
+        question_questionnaire=question_data.question_questionnaire,
         supports_multiple_answers=question_data.supports_multiple_answers
     )
     db.add(db_question)
     db.commit()
     db.refresh(db_question)
 
-    # If there are answer options and the question is not of type FREE_TEXT, associate them
     if question_data.answer_options and question_data.question_type != QuestionType.free_text:
         for option_data in question_data.answer_options:
             db_option = Models_Answer_Option(
@@ -44,52 +31,43 @@ def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Que
             )
             db.add(db_option)
         db.commit()
-        db.refresh(db_option)  # Optionally refresh each option or the question to update ORM relationships
+        db.refresh(db_option)
 
     return db_question
 
 
-def get_questions(db: Session) -> List[Models_Question]:
+def get_questions(db: Session, questionnaire_type: Optional[QuestionnaireType] = None) -> List[Models_Question]:
     """
-    Get all questions from the database.
+    Get all questions from the database, optionally filtering by questionnaire type.
 
     Parameters:
     - db (Session): Database session.
+    - questionnaire_type (Optional[QuestionnaireType]): The type of questionnaire to filter by.
 
     Returns:
-    - List[Models_Question]: List of all questions.
+    - List[Models_Question]: List of all questions, filtered by the questionnaire type if provided.
     """
-    return db.query(Models_Question).all()
+    query = db.query(Models_Question)
+    if questionnaire_type:
+        query = query.filter(Models_Question.question_questionnaire == questionnaire_type)
+    return query.all()
 
 
-def update_question(db: Session, question_id: int, question_update: QuestionCreate) -> Union[Models_Question, None]:
-    """
-    Update an existing question in the database with new information.
-
-    Parameters:
-    - db (Session): Database session.
-    - question_id (int): The ID of the question to update.
-    - question_update (QuestionCreate): New data to update the question with.
-
-    Returns:
-    - Models_Question: The updated question instance, or None if the question does not exist.
-
-    Raises:
-    - ValueError: If attempting to add answer options to a free text question.
-    """
+def update_question(db: Session, question_id: int, question_update: QuestionUpdate) -> Union[Models_Question, None]:
     db_question = db.query(Models_Question).filter(Models_Question.id == question_id).first()
     if not db_question:
         return None
 
-    # Check for "FREE_TEXT" question type and answer options
     if db_question.question_type == QuestionType.free_text and question_update.answer_options is not None:
-        if len(question_update.answer_options) > 0:  # Ensure answer_options list is empty for FREE_TEXT questions
+        if len(question_update.answer_options) > 0:
             raise ValueError("Free text questions should not have answer options.")
 
     if question_update.question_text is not None:
         db_question.question_text = question_update.question_text
     if question_update.question_type is not None:
         db_question.question_type = question_update.question_type
+    if question_update.question_questionnaire is not None:
+        db_question.question_questionnaire = question_update.question_questionnaire
     if question_update.supports_multiple_answers is not None:
         db_question.supports_multiple_answers = question_update.supports_multiple_answers
 
@@ -140,18 +118,20 @@ def delete_question(db: Session, question_id: int) -> bool:
     return False
 
 
-def get_questions_statistics(db: Session) -> List[Dict]:
+def get_questions_statistics(db: Session, questionnaire_type: QuestionnaireType) -> List[Dict]:
     """
-    Retrieve statistics for each question from the database.
+    Retrieve statistics for each question from the database filtered by the questionnaire type.
 
     Parameters:
     - db (Session): Database session.
+    - questionnaire_type (QuestionnaireType): The type of questionnaire to filter questions by.
 
     Returns:
     - List[Dict]: List of dictionaries containing question statistics.
     """
     questions = db.query(Models_Question).filter(
-        Models_Question.question_type.in_([QuestionType.multiple_choice, QuestionType.multiple_choice_with_text])
+        Models_Question.question_type.in_([QuestionType.multiple_choice, QuestionType.multiple_choice_with_text]),
+        Models_Question.question_questionnaire == questionnaire_type
     ).all()
 
     stats_list = []
