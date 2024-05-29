@@ -20,6 +20,12 @@ class SubmissionTime(str, Enum):
     END = "Λήξη"
 
 
+# Define questionnaire type
+class QuestionnaireType(str, Enum):
+    STUDENT = 'student'
+    COMPANY = 'company'
+
+
 # Define departments
 class Department(str, Enum):
     IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
@@ -158,6 +164,8 @@ class Question(Base):
         SQLAlchemyEnum(QuestionType, values_callable=lambda obj: [e.value for e in obj], create_constraint=True,
                        name='questiontype'),
         nullable=False)
+    question_questionnaire = Column(SQLAlchemyEnum(QuestionnaireType), default=QuestionnaireType.STUDENT,
+                                    nullable=False)
     supports_multiple_answers = Column(Boolean, default=False, nullable=False)
 
     # Define relationships
