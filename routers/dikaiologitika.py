@@ -117,6 +117,8 @@ async def read_files_for_user_endpoint(
 
     files = get_files_by_user_id(db, user_id=user_id, file_type=file_type)
     user = get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     # Enhance each Dikaiologitika model with a description
     files_models = []
     for file in files:

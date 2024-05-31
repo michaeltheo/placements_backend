@@ -103,10 +103,27 @@ class Users(Base):
     department = Column(SQLAlchemyEnum(Department), nullable=True)
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.STUDENT)
 
+    # TODO: discuss if we need this one
     # Define relationships
-    dikaiologitika = relationship("Dikaiologitika", back_populates="user")
+    dikaiologitika = relationship("Dikaiologitika", back_populates="user", cascade="all, delete-orphan")
     answers = relationship("UserAnswer", back_populates="user")
     internships = relationship("Internship", back_populates="user")
+    # The 'cascade="all, delete-orphan"' option in the Users-OTPs relationship ensures:
+    # 1. Changes to the parent (Users) are cascaded to the child (OTPs) - 'all'.
+    # 2. Deleting an orphaned child (OTP) when it is removed from the relationship - 'delete-orphan'.
+    otps = relationship("OTP", back_populates="user", cascade="all, delete-orphan")
+
+
+# Define OTP table
+class OTP(Base):
+    __tablename__ = 'otps'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    otp = Column(String(6), nullable=False)
+    expiry = Column(DateTime, nullable=False)
+
+    # Define relationships
+    user = relationship("Users", back_populates="otps")
 
 
 # Define the Companies table

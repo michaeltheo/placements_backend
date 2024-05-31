@@ -9,6 +9,7 @@ from routers.auth import router as auth_router
 from routers.companies import router as companies_router
 from routers.dikaiologitika import router as dikaiologitika_router
 from routers.internship import router as internship_router  # Corrected the import name
+from routers.otp import router as otp_router
 from routers.questions import router as question_router
 from routers.user_answers import router as user_answers_router
 from routers.users import router as users_router
@@ -54,6 +55,7 @@ app.include_router(user_answers_router)
 app.include_router(auth_router)
 app.include_router(companies_router)
 app.include_router(internship_router)
+app.include_router(otp_router)
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)

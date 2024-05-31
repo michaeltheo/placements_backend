@@ -51,7 +51,7 @@ class QuestionCreate(BaseModel):
     supports_multiple_answers: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class QuestionUpdate(BaseModel):
@@ -72,7 +72,7 @@ class QuestionUpdate(BaseModel):
     supports_multiple_answers: Optional[bool] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AnswerOption(BaseModel):
@@ -87,7 +87,7 @@ class AnswerOption(BaseModel):
     option_text: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Question(BaseModel):
@@ -113,4 +113,4 @@ class Question(BaseModel):
     answer_options: Optional[List[AnswerOption]] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
