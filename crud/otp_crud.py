@@ -40,7 +40,7 @@ def generate_otp(db: Session, user_id: int) -> OTP:
 
     # Generate a new OTP
     otp = ''.join(random.choices(string.digits, k=6))
-    expiry = datetime.now() + timedelta(seconds=20)  # OTP is valid for 20 seconds
+    expiry = datetime.now() + timedelta(minutes=15)  # OTP is valid for 20 seconds
 
     # Delete any existing OTPs for the user
     if existing_otp:

@@ -34,6 +34,10 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         db.refresh(existing_internship)
         return existing_internship
     else:
+        if internship_data.company_id:
+            company = get_company(db, internship_data.company_id)
+            if company is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Η εταιρεία δεν βρέθηκε")
         # Create new internship
         new_internship = InternshipModel(
             user_id=user_id,
