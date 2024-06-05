@@ -66,9 +66,13 @@ async def upload_dikaiologitika_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
 
     file_location = f"files/{current_user.id}/{type.value}/{file.filename}"
-    existing_file = db.query(DikaiologitikaModels).filter_by(file_path=file_location).first()
-    if existing_file:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A file with the same name already exists.")
+    existing_files = db.query(DikaiologitikaModels).filter(
+        DikaiologitikaModels.user_id == current_user.id,
+        DikaiologitikaModels.type == type.value
+    ).all()
+    if existing_files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="You have already submitted this file type.")
     os.makedirs(os.path.dirname(file_location), exist_ok=True)
 
     with open(file_location, "wb+") as file_object:
@@ -201,15 +205,10 @@ async def update_dikaiologitika_file_endpoint(
     # Define the new file location
     new_file_location = f"files/{current_user.id}/{dikaiologitika.type.value}/{file.filename}"
 
-    # Check if the new file name already exists to prevent overwriting
-    if os.path.exists(new_file_location):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File with this name already exists.")
-
-    # Optional: Delete the old file from the filesystem
     try:
         os.remove(dikaiologitika.file_path)
     except FileNotFoundError:
-        # The file was not found, handle this case as needed
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found or not accessible.")
         pass
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

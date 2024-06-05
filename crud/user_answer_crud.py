@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from models import UserAnswer as Models_UserAnswer, Question as Models_Question, AnswerOption
+from models import UserAnswer as Models_UserAnswer, Question as Models_Question, AnswerOption, QuestionnaireType
 from schemas.question_schema import QuestionType
 from schemas.user_answer_schema import AnswerSubmission, QuestionWithAnswers, AnswerDetail
 
@@ -23,7 +23,9 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
         if not question:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"Question with ID {submission.question_id} not found.")
-
+        if question.question_questionnaire != QuestionnaireType.STUDENT:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Question with ID {submission.question_id} is not a student question.")
         # Validate for duplicated IDs in answer_option_ids
         if submission.answer_option_ids and len(submission.answer_option_ids) != len(set(submission.answer_option_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,

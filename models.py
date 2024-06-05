@@ -76,7 +76,6 @@ class DikaiologitikaType(Enum):
             DikaiologitikaType.YpeuthiniDilosiProsopikonDedomenon: "Υπεύθυνη Δήλωση Προσωπικών Δεδομένων",
             DikaiologitikaType.DilosiMoriodotisi: "Δήλωση Μοριοδότησης",
             DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Εργοδότη",
-
         }
         return descriptions.get(type_member, "Unknown Type")
 
@@ -103,14 +102,10 @@ class Users(Base):
     department = Column(SQLAlchemyEnum(Department), nullable=True)
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.STUDENT)
 
-    # TODO: discuss if we need this one
     # Define relationships
     dikaiologitika = relationship("Dikaiologitika", back_populates="user", cascade="all, delete-orphan")
     answers = relationship("UserAnswer", back_populates="user")
     internships = relationship("Internship", back_populates="user")
-    # The 'cascade="all, delete-orphan"' option in the Users-OTPs relationship ensures:
-    # 1. Changes to the parent (Users) are cascaded to the child (OTPs) - 'all'.
-    # 2. Deleting an orphaned child (OTP) when it is removed from the relationship - 'delete-orphan'.
     otps = relationship("OTP", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -153,6 +148,7 @@ class Internship(Base):
     # Define relationships
     user = relationship("Users", back_populates='internships')
     company = relationship("Companies", back_populates="internships")
+    company_answers = relationship("CompanyAnswer", back_populates="internship")
 
 
 # Define the Dikaiologitika table
@@ -187,6 +183,7 @@ class Question(Base):
 
     # Define relationships
     answer_options = relationship("AnswerOption", back_populates="question")
+    company_answers = relationship("CompanyAnswer", back_populates="question")
 
 
 # Define the AnswerOption table
@@ -200,6 +197,7 @@ class AnswerOption(Base):
     # Define relationships
     question = relationship("Question", back_populates="answer_options")
     user_answers = relationship("UserAnswer", back_populates="answer_option")
+    company_answers = relationship("CompanyAnswer", back_populates="answer_option")
 
 
 # Define the UserAnswer table
@@ -216,3 +214,16 @@ class UserAnswer(Base):
     user = relationship("Users", back_populates="answers")
     question = relationship("Question")
     answer_option = relationship("AnswerOption", back_populates="user_answers")
+
+
+class CompanyAnswer(Base):
+    __tablename__ = 'company_answers'
+    id = Column(Integer, primary_key=True, index=True)
+    internship_id = Column(Integer, ForeignKey('internships.id'), nullable=False)
+    question_id = Column(Integer, ForeignKey('questions.id'), nullable=False)
+    answer_option_id = Column(Integer, ForeignKey('answer_options.id'), nullable=True)
+    answer_text = Column(Text, nullable=True)  # For free text responses or "Άλλο" option text
+
+    internship = relationship("Internship", back_populates="company_answers")
+    question = relationship("Question", back_populates="company_answers")
+    answer_option = relationship("AnswerOption", back_populates="company_answers")

@@ -92,7 +92,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
 
     # Fetch profile data from IHU IEE using the obtained token
     profile_data = await fetch_profile(token)
-    print(profile_data)
     if profile_data is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch profile")
 
