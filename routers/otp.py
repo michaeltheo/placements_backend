@@ -37,7 +37,7 @@ async def generate_otp(current_user: Users = Depends(get_current_user), db: Sess
     """
     user = db.query(Users).filter(Users.id == current_user.id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε")
 
     try:
 
@@ -48,7 +48,7 @@ async def generate_otp(current_user: Users = Depends(get_current_user), db: Sess
     # Send the OTP to the user's email or phone number (implementation not shown)
     # For simplicity, we will just print it here
     otp_response = OtpBase(code=otp.otp, expiry=otp.expiry)
-    return ResponseWrapper(data=otp_response, message=Message(detail="OTP code  successufull created."))
+    return ResponseWrapper(data=otp_response, message=Message(detail="Ο κωδικός OTP δημιουργήθηκε με επιτυχία"))
 
 
 @router.post('/validate', response_model=ResponseWrapper[OtpValid], status_code=status.HTTP_200_OK)
@@ -70,7 +70,8 @@ async def validate_otp(otp: str, db: Session = Depends(get_db)):
         if internship:
             company = get_company(db, internship.company_id)
             if not company.name:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This internship has no company")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Αυτή η πρακτική άσκηση δεν έχει εταιρεία")
             access_token = create_short_lived_token(data={"sub": str(user.id)})
             otp_response = OtpValid(
                 user_id=user.id,
@@ -82,8 +83,9 @@ async def validate_otp(otp: str, db: Session = Depends(get_db)):
                 user_lastName=user.last_name,
                 token=access_token,
             )
-            return ResponseWrapper(data=otp_response, message=Message(detail="Otp code validation was successfull!"))
+            return ResponseWrapper(data=otp_response,
+                                   message=Message(detail="Η επικύρωση του κωδικού OTP ήταν επιτυχής!"))
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Internship was not found")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Η πρακτική άσκηση δεν βρέθηκε.")
     else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρος ή ληγμένος κωδικός OTP.")

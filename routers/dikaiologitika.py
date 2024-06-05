@@ -36,7 +36,8 @@ async def get_dikaiologitika_types_endpoint():
         for program, requirements in INTERNSHIP_PROGRAM_REQUIREMENTS.items()
     }
     return ResponseWrapper(data=data,
-                           message=Message(detail="List of all Dikaiologitika types for each Internship Program"))
+                           message=Message(
+                               detail="Λίστα όλων των τύπων Δικαιολογητικών για κάθε Πρόγραμμα Πρακτικής Άσκησης."))
 
 
 @router.post("/", response_model=ResponseWrapper[Dikaiologitika], status_code=status.HTTP_200_OK)
@@ -63,7 +64,7 @@ async def upload_dikaiologitika_endpoint(
     - ResponseWrapper[Dikaiologitika]: A wrapped response containing the newly created dikaiologitika record and a success message.
     """
     if file.content_type != 'application/pdf':
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Το αρχείο πρέπει να είναι PDF")
 
     file_location = f"files/{current_user.id}/{type.value}/{file.filename}"
     existing_files = db.query(DikaiologitikaModels).filter(
@@ -72,7 +73,7 @@ async def upload_dikaiologitika_endpoint(
     ).all()
     if existing_files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="You have already submitted this file type.")
+                            detail="Έχετε ήδη υποβάλει αυτόν τον τύπο αρχείου.")
     os.makedirs(os.path.dirname(file_location), exist_ok=True)
 
     with open(file_location, "wb+") as file_object:
@@ -90,7 +91,7 @@ async def upload_dikaiologitika_endpoint(
 
     return ResponseWrapper(
         data=dikaiologitika,
-        message=Message(detail="File uploaded successfully")
+        message=Message(detail="Το αρχείο ανέβηκε με επιτυχία")
     )
 
 
@@ -117,12 +118,13 @@ async def read_files_for_user_endpoint(
      """
     # Ensure the requesting user is the owner of the files or an admin
     if current_user.id != user_id and not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access these files.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Δεν έχετε άδεια πρόσβασης σε αυτά τα αρχεία.")
 
     files = get_files_by_user_id(db, user_id=user_id, file_type=file_type)
     user = get_user_by_id(db, user_id)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε.")
     # Enhance each Dikaiologitika model with a description
     files_models = []
     for file in files:
@@ -137,7 +139,7 @@ async def read_files_for_user_endpoint(
 
     user_model = User.from_orm(user)
     files_and_user = FileAndUser(files=files_models, user=user_model)
-    return ResponseWrapper(data=files_and_user, message=Message(detail="Files retrieved"))
+    return ResponseWrapper(data=files_and_user, message=Message(detail="Τα αρχεία ανακτήθηκαν."))
 
 
 @router.get("/admin/files", response_model=ResponseWrapper[List[FileAndUser]], status_code=status.HTTP_200_OK)
@@ -171,7 +173,7 @@ async def get_all_files_for_admin_endpoint(
     for file in files:
         user = get_user_by_id(db, file.user_id)  # Assuming each file has a user_id attribute
         files_and_users.append(FileAndUser(files=[file], user=user))
-    return ResponseWrapper(data=files_and_users, message=Message(detail="Files retrieved"))
+    return ResponseWrapper(data=files_and_users, message=Message(detail="Τα αρχεία ανακτήθηκαν."))
 
 
 @router.put("/{dikaiologitika_id}/", response_model=Message, status_code=status.HTTP_200_OK)
@@ -195,12 +197,13 @@ async def update_dikaiologitika_file_endpoint(
     - Message: A success message indicating the file was updated.
     """
     if file.content_type != 'application/pdf':
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Το αρχείο πρέπει να είναι PDF")
 
     # Fetch the file record to ensure it exists and belongs to the current user
     dikaiologitika = get_file_by_id(db, dikaiologitika_id)
     if not dikaiologitika or dikaiologitika.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found or not accessible.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Το αρχείο δεν βρέθηκε ή δεν είναι προσβάσιμο.")
 
     # Define the new file location
     new_file_location = f"files/{current_user.id}/{dikaiologitika.type.value}/{file.filename}"
@@ -208,7 +211,8 @@ async def update_dikaiologitika_file_endpoint(
     try:
         os.remove(dikaiologitika.file_path)
     except FileNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found or not accessible.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Το αρχείο δεν βρέθηκε ή δεν είναι προσβάσιμο.")
         pass
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -222,9 +226,9 @@ async def update_dikaiologitika_file_endpoint(
     new_update_file = update_file_path(db=db, file_id=dikaiologitika_id, new_file_path=new_file_location,
                                        file_name=file.filename)
     if not new_update_file:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Το αρχείο δεν βρέθηκε.")
 
-    return Message(detail="File updated successfully")
+    return Message(detail="Το αρχείο ενημερώθηκε με επιτυχία.")
 
 
 @router.get("/download/{file_id}")
@@ -250,16 +254,17 @@ async def download_file_endpoint(file_id: int, db: Session = Depends(get_db),
     file_record = db.query(DikaiologitikaModels).filter(DikaiologitikaModels.id == file_id).first()
 
     if not file_record:
-        raise HTTPException(status_code=404, detail="File not found.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Το αρχείο δεν βρέθηκε.")
 
     # Check if the current user is the owner of the file or an admin
     if file_record.user_id != current_user.id and not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to download this file.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Δεν έχετε άδεια να κατεβάσετε αυτό το αρχείο.")
 
     # Construct the full path to the file
     file_path = file_record.file_path
     if not os.path.isfile(file_path):
-        raise HTTPException(status_code=404, detail="File not found on server.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Το αρχείο δεν βρέθηκε.")
 
     return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/octet-stream')
 
@@ -286,10 +291,11 @@ async def delete_file_endpoint(
         # Verify if the file belongs to the current user
         db_file = get_files_by_user_id(db, user_id=current_user.id, file_id=file_id)
         if not db_file:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized to delete this file.")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Δεν έχετε άδεια να διαγράψετε αυτό το αρχείο.")
     file_to_delete = get_file_by_id(db, file_id)
     success = delete_file(db, file_id=file_id, user_id=file_to_delete.user_id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Το αρχείο δεν βρέθηκε.")
 
-    return Message(detail="File successfully deleted")
+    return Message(detail="Το αρχείο διαγράφηκε με επιτυχία.")

@@ -29,7 +29,7 @@ async def get_department_types_endpoint():
        Returns:
        - ResponseWrapper[List[str]]: A wrapped response containing a list of department types with a success message.
        """
-    return ResponseWrapper(data=Department, message=Message(detail="List of all Department types"))
+    return ResponseWrapper(data=Department, message=Message(detail="Λίστα όλων των τύπων Τμημάτων."))
 
 
 @router.get('/', response_model=ResponseTotalItems[List[User]], status_code=status.HTTP_200_OK)
@@ -63,13 +63,13 @@ async def read_users_endpoint(
         try:
             query = query.filter(Users.role == UserRole(role))
         except KeyError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role specified")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρος ρόλος.")
 
     if department:
         try:
             query = query.filter(Users.department == Department(department))
         except KeyError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid department specified")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρο τμήμα.")
 
     total_items = query.count()
 
@@ -81,7 +81,7 @@ async def read_users_endpoint(
     return ResponseTotalItems(
         data=users,
         total_items=total_items,
-        message=Message(detail="Users fetched successfully")
+        message=Message(detail="Οι χρήστες ανακτήθηκαν με επιτυχία.")
     )
 
 
@@ -185,15 +185,16 @@ async def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
         """
     # Check if the current user is trying to access someone else's information without being an admin.
     if user_id != current_user.id and not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this user.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Δεν έχετε εξουσιοδότηση να αποκτήσετε πρόσβαση σε αυτόν τον χρήστη.")
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if db_user is None:
         # No user found with the provided ID.
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε.")
     # User found, return the user's information.
     return ResponseWrapper(data=db_user,
-                           message=Message(detail="User retrieved successfully"))
+                           message=Message(detail="Ο χρήστης ανακτήθηκε με επιτυχία"))
 
 
 @router.put("/set-admin/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -215,16 +216,16 @@ async def set_user_as_admin(user_id: int, db: Session = Depends(get_db),
     - Message: A message indicating the promotion status.
     """
     if not is_super_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is not super admin')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Ο χρήστης δεν είναι Super διαχειριστής.')
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ο χρήστης δεν βρέθηκε.')
     db_user.role = UserRole.ADMIN
     db.commit()
     db.refresh(db_user)
     return Message(
-        detail=f"User: {db_user.first_name} {db_user.last_name} promoted to admin.")
+        detail=f"Ο χρήστης: {db_user.first_name} {db_user.last_name} προήχθη σε διαχειριστή.")
 
 
 @router.put("/set-student/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -246,13 +247,13 @@ async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
     - Message: A message indicating the demotion status.
     """
     if not is_super_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is not super admin')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Ο χρήστης δεν είναι Super διαχειριστής.')
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ο χρήστης δεν βρέθηκε.')
     db_user.role = UserRole.STUDENT
     db.commit()
     db.refresh(db_user)
     return Message(
-        detail=f"User: {db_user.first_name} {db_user.last_name} demoted to student.")
+        detail=f"Ο χρήστης: {db_user.first_name} {db_user.last_name} υποβαθμίστηκε σε φοιτητή.")

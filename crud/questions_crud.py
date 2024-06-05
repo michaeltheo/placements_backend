@@ -3,6 +3,7 @@ from typing import List, Dict, Union, Optional
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from starlette import status
 
 from models import Question as Models_Question, AnswerOption as Models_Answer_Option, UserAnswer as Models_UserAnswer
 from schemas.question_schema import QuestionCreate, QuestionType, QuestionUpdate, QuestionnaireType
@@ -24,7 +25,8 @@ def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Que
     """
     if question_data.question_type in [QuestionType.multiple_choice,
                                        QuestionType.multiple_choice_with_text] and not question_data.answer_options:
-        raise HTTPException(status_code=400, detail="Answer options are required for multiple choice questions.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Για τις ερωτήσεις πολλαπλής επιλογής απαιτείται μία απο τις επιλογές απάντησης.")
 
     db_question = Models_Question(
         question_text=question_data.question_text,

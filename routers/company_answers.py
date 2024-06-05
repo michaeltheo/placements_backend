@@ -41,11 +41,11 @@ def submit_company_answers_endpoint(submissions: List[AnswerSubmission], interns
         payload = verify_jwt(token)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid or expired token. Please enter a new OTP code.")
+                            detail="Μη έγκυρο ή ληγμένο token. Παρακαλώ εισάγετε νέο κωδικό OTP.")
 
     # Token is verified, proceed with submitting company answers
     submit_company_answers(db, internship_id, submissions)
-    return Message(detail='Company answers submitted successfully')
+    return Message(detail='Οι απαντήσεις της εταιρείας υποβλήθηκαν με επιτυχία.')
 
 
 @router.get("/{internship_id}", response_model=ResponseWrapper[List[QuestionWithAnswers]])
@@ -65,4 +65,5 @@ async def get_company_responses_endpoint(internship_id: int, db: Session = Depen
     - ResponseWrapper[List[QuestionWithAnswers]]: A wrapper containing the list of questions with the company's answers and a success message.
     """
     company_responses = get_question_with_company_answers(db, internship_id)
-    return ResponseWrapper(data=company_responses, message=Message(detail="Company answers fetched successfully"))
+    return ResponseWrapper(data=company_responses,
+                           message=Message(detail="Οι απαντήσεις της εταιρείας ανακτήθηκαν με επιτυχία."))

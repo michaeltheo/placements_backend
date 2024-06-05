@@ -83,17 +83,17 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     print(f"OAuth state from session: {session_state}, state from request: {state}")
     # Validate the state parameter
     if session_state != state:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid state parameter")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Μη έγκυρη παράμετρος state.")
 
     # Fetch Token from IHU IEE
     token = await fetch_token(code)
     if token is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch token")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Αποτυχία λήψης token.")
 
     # Fetch profile data from IHU IEE using the obtained token
     profile_data = await fetch_profile(token)
     if profile_data is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch profile")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Αποτυχία λήψης προφίλ.")
 
     # Retrieve academic number (AM) from profile data and check if the user exists in the database
     am = profile_data.get('am')
@@ -179,7 +179,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     }
     login_response = UserLoginResponse(user=user_response, tokens=tokens)
 
-    return ResponseWrapper(data=login_response, message=Message(detail="User processed successfully"))
+    return ResponseWrapper(data=login_response, message=Message(detail="Είσοδος χρήστη με επιτυχία"))
 
 
 @router.get("/verify-token", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
@@ -196,13 +196,14 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
     - ResponseWrapper[UserCreateResponse]: Response containing user details.
     """
     if not access_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not provided, try login.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Δεν βρέθηκε token, δοκιμάστε να συνδεθείτε ξανά.")
     try:
         # Verify the JWT and decode it to get the user information
         payload = verify_jwt(access_token)
         user_id: str = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Μη έγκυρο token.")
         # Fetch the user from the database using the user ID
         user = get_user_by_id(db, int(user_id))
         admin_status = is_admin(user)
@@ -221,7 +222,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             "accessToken": access_token
         }
         if user is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Ο χρήστης δεν βρέθηκε.")
             # Convert fields to None if they are None in the database
         for field in ["fathers_name", "telephone_number", "reg_year", "email"]:
             if user_response_data[field] is None:
@@ -233,7 +234,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
         # Return the custom message
         return ResponseWrapper(data=user_response, message=Message(detail=success_message))
     except jwt.JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token verification failed")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Η επαλήθευση του token απέτυχε.")
 
 
 async def fetch_token(code: str) -> Optional[Dict[str, str]]:

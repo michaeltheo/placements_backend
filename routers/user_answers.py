@@ -36,7 +36,7 @@ def submit_answers_endpoint(submissions: List[AnswerSubmission], db: Session = D
     - HTTPException: If the current_user's ID does not match the user_id, indicating an attempt to submit answers for another user.
     """
     submit_user_answers(db, current_user.id, submissions)
-    return Message(detail='Answers submitted successfully')
+    return Message(detail='Οι απαντήσεις υποβλήθηκαν με επιτυχία.')
 
 
 @router.get("/{user_id}", response_model=ResponseWrapper[List[QuestionWithAnswers]])
@@ -58,9 +58,9 @@ async def get_user_responses_endpoint(user_id: int, db: Session = Depends(get_db
     """
     if current_user.id != user_id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Access restricted to your own responses or admin.")
+                            detail="Η πρόσβαση περιορίζεται στις δικές σας απαντήσεις ή στον διαχειριστή.")
     user_responses = get_question_with_user_answers(db, user_id)
-    return ResponseWrapper(data=user_responses, message=Message(detail="Answers fetched successfully"))
+    return ResponseWrapper(data=user_responses, message=Message(detail="Οι απαντήσεις ανακτήθηκαν με επιτυχία."))
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
@@ -82,13 +82,13 @@ async def delete_answers_endpoint(user_id: int, db: Session = Depends(get_db),
     """
     if current_user.id != user_id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Deletion restricted to your own answers or admin.")
+                            detail="Η διαγραφή περιορίζεται στις δικές σας απαντήσεις ή στον διαχειριστή.")
     deletion_successful = delete_user_answers(db, user_id)
     if deletion_successful:
         return Message(
-            detail=f"All answers from user have been deleted")
+            detail=f"Όλες οι απαντήσεις του χρήστη έχουν διαγραφεί.")
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No answers found to delete or could not be deleted"
+            detail="Δεν βρέθηκαν απαντήσεις για διαγραφή ή δεν ήταν δυνατή η διαγραφή."
         )

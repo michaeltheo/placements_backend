@@ -22,20 +22,20 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
         question = db.query(Models_Question).filter(Models_Question.id == submission.question_id).first()
         if not question:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Question with ID {submission.question_id} not found.")
+                                detail=f"Ερώτηση με ID {submission.question_id} δεν βρέθηκε.")
         if question.question_questionnaire != QuestionnaireType.STUDENT:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Question with ID {submission.question_id} is not a student question.")
+                                detail=f"Ερώτηση με ID {submission.question_id} δεν είναι ερώτηση 'φοιτητή'.")
         # Validate for duplicated IDs in answer_option_ids
         if submission.answer_option_ids and len(submission.answer_option_ids) != len(set(submission.answer_option_ids)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Duplicate answer option IDs found for question ID {submission.question_id}.")
+                                detail=f"Βρέθηκαν διπλές απαντήσεις για την ερώτηση με ID {submission.question_id}.")
         # Validate each answer_option_id against the question's valid options
         valid_option_ids = {option.id for option in question.answer_options}
         invalid_option_ids = set(submission.answer_option_ids or []) - valid_option_ids
         if invalid_option_ids:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Invalid answer option IDs {list(invalid_option_ids)} for question ID {submission.question_id}.")
+                                detail=f"Μη έγκυρα IDs επιλογών απάντησης {list(invalid_option_ids)} για την ερώτηση με ID {submission.question_id}.")
 
         # Delete existing answers for this question and user
         db.query(Models_UserAnswer).filter(
@@ -49,7 +49,7 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
         if not question.supports_multiple_answers and submission.answer_option_ids and len(
                 submission.answer_option_ids) > 1:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="This question does not support multiple answers.")
+                                detail="Αυτή η ερώτηση δεν υποστηρίζει πολλαπλές απαντήσεις.")
 
         # Handle submissions based on question type
         if question.question_type == QuestionType.free_text and submission.answer_text:
@@ -68,7 +68,7 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
                     user_id=user_id,
                     question_id=submission.question_id,
                     answer_option_id=other_option_id,
-                    answer_text=submission.answer_text  # Save the answer text here
+                    answer_text=submission.answer_text
                 ))
                 # Remove the other_option_id from the answer_option_ids list to avoid adding it again
                 submission.answer_option_ids.remove(other_option_id)
@@ -80,7 +80,8 @@ def submit_user_answers(db: Session, user_id: int, submissions: List[AnswerSubmi
                     user_id=user_id,
                     question_id=submission.question_id,
                     answer_option_id=option_id,
-                    answer_text=None  # Text is handled separately
+                    # Text is handled separately
+                    answer_text=None
                 ))
 
         db.commit()
