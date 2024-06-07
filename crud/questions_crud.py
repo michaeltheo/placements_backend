@@ -5,7 +5,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette import status
 
-from models import Question as Models_Question, AnswerOption as Models_Answer_Option, UserAnswer as Models_UserAnswer
+from models import Question as Models_Question, AnswerOption as Models_Answer_Option, UserAnswer as Models_UserAnswer, \
+    CompanyAnswer as Models_CompanyAnswers
 from schemas.question_schema import QuestionCreate, QuestionType, QuestionUpdate, QuestionnaireType
 
 
@@ -165,67 +166,182 @@ def get_questions_statistics(db: Session, questionnaire_type: QuestionnaireType)
 
     stats_list = []
     for question in questions:
-        option_counts = db.query(
-            Models_UserAnswer.answer_option_id,
-            Models_Answer_Option.option_text,
-            func.count(Models_UserAnswer.answer_option_id).label('count')
-        ).join(
-            Models_Answer_Option, Models_Answer_Option.id == Models_UserAnswer.answer_option_id
-        ).filter(
-            Models_UserAnswer.question_id == question.id
-        ).group_by(
-            Models_UserAnswer.answer_option_id, Models_Answer_Option.option_text
-        ).all()
-
-        other_option_details = next(
-            ({'option_id': oc.answer_option_id, 'text': oc.option_text, 'count': 0} for oc in option_counts if
-             oc.option_text == "Άλλο"), None)
-
-        statistics_dict = {}
-        for oc in option_counts:
-            if oc.answer_option_id in statistics_dict:
-                statistics_dict[oc.answer_option_id]['count'] += oc.count
-            else:
-                statistics_dict[oc.answer_option_id] = {
-                    'option_id': oc.answer_option_id,
-                    'text': oc.option_text,
-                    'count': oc.count
-                }
-
-        all_options = db.query(Models_Answer_Option).filter(
-            Models_Answer_Option.question_id == question.id
-        ).all()
-        for option in all_options:
-            if option.id not in statistics_dict:
-                statistics_dict[option.id] = {
-                    'option_id': option.id,
-                    'text': option.option_text,
-                    'count': 0
-                }
-
-        statistics = list(statistics_dict.values())
-
-        free_text_responses = []
-        if question.question_type == QuestionType.multiple_choice_with_text and other_option_details:
-            free_text_answers = db.query(Models_UserAnswer.answer_text).filter(
-                Models_UserAnswer.question_id == question.id,
-                Models_UserAnswer.answer_option_id == other_option_details['option_id'],
-                Models_UserAnswer.answer_text.isnot(None)
-            ).all()
-            free_text_responses = [answer.answer_text for answer in free_text_answers]
-            unique_responses = set(free_text_responses)
-            other_option_details['count'] = len(unique_responses)
-            statistics_dict[other_option_details['option_id']] = other_option_details
-
-        total_responses = sum(stat['count'] for stat in statistics_dict.values())
-
-        stats_list.append({
-            'question_id': question.id,
-            'question_text': question.question_text,
-            'statistics': statistics,
-            'free_text_responses_count': len(free_text_responses),
-            'free_text_responses': free_text_responses,
-            'total_responses': total_responses
-        })
+        if questionnaire_type == QuestionnaireType.STUDENT:
+            stats = get_student_question_statistics(db, question)
+        elif questionnaire_type == QuestionnaireType.COMPANY:
+            stats = get_company_question_statistics(db, question)
+        stats_list.append(stats)
 
     return stats_list
+
+
+def get_student_question_statistics(db: Session, question: Models_Question) -> Dict:
+    """
+    Fetch statistics for student questionnaire questions.
+
+    Parameters:
+        db (Session): The database session used for the operation.
+        question (Models_Question): The question for which statistics are being fetched.
+
+    Returns:
+        Dict: A dictionary containing the statistics for the question.
+    """
+    option_counts = db.query(
+        Models_UserAnswer.answer_option_id,
+        Models_Answer_Option.option_text,
+        func.count(Models_UserAnswer.answer_option_id).label('count')
+    ).join(
+        Models_Answer_Option, Models_Answer_Option.id == Models_UserAnswer.answer_option_id
+    ).filter(
+        Models_UserAnswer.question_id == question.id
+    ).group_by(
+        Models_UserAnswer.answer_option_id, Models_Answer_Option.option_text
+    ).all()
+
+    statistics_dict, other_option_details = process_option_counts(option_counts)
+
+    all_options = db.query(Models_Answer_Option).filter(
+        Models_Answer_Option.question_id == question.id
+    ).all()
+    update_statistics_with_all_options(statistics_dict, all_options)
+
+    statistics = list(statistics_dict.values())
+
+    free_text_responses = []
+    if question.question_type == QuestionType.multiple_choice_with_text and other_option_details:
+        free_text_responses, other_option_details = process_free_text_answers(db, question, other_option_details,
+                                                                              Models_UserAnswer)
+        statistics_dict[other_option_details['option_id']] = other_option_details
+
+    total_responses = sum(stat['count'] for stat in statistics_dict.values())
+
+    return {
+        'question_id': question.id,
+        'question_text': question.question_text,
+        'statistics': statistics,
+        'free_text_responses_count': len(free_text_responses),
+        'free_text_responses': free_text_responses,
+        'total_responses': total_responses
+    }
+
+
+def get_company_question_statistics(db: Session, question: Models_Question) -> Dict:
+    """
+    Fetch statistics for company questionnaire questions.
+
+    Parameters:
+        db (Session): The database session used for the operation.
+        question (Models_Question): The question for which statistics are being fetched.
+
+    Returns:
+        Dict: A dictionary containing the statistics for the question.
+    """
+    option_counts = db.query(
+        Models_CompanyAnswers.answer_option_id,
+        Models_Answer_Option.option_text,
+        func.count(Models_CompanyAnswers.answer_option_id).label('count')
+    ).join(
+        Models_Answer_Option, Models_Answer_Option.id == Models_CompanyAnswers.answer_option_id
+    ).filter(
+        Models_CompanyAnswers.question_id == question.id
+    ).group_by(
+        Models_CompanyAnswers.answer_option_id, Models_Answer_Option.option_text
+    ).all()
+
+    statistics_dict, other_option_details = process_option_counts(option_counts)
+
+    all_options = db.query(Models_Answer_Option).filter(
+        Models_Answer_Option.question_id == question.id
+    ).all()
+    update_statistics_with_all_options(statistics_dict, all_options)
+
+    statistics = list(statistics_dict.values())
+
+    free_text_responses = []
+    if question.question_type == QuestionType.multiple_choice_with_text and other_option_details:
+        free_text_responses, other_option_details = process_free_text_answers(db, question, other_option_details,
+                                                                              Models_CompanyAnswers)
+        statistics_dict[other_option_details['option_id']] = other_option_details
+
+    total_responses = sum(stat['count'] for stat in statistics_dict.values())
+
+    return {
+        'question_id': question.id,
+        'question_text': question.question_text,
+        'statistics': statistics,
+        'free_text_responses_count': len(free_text_responses),
+        'free_text_responses': free_text_responses,
+        'total_responses': total_responses
+    }
+
+
+def process_option_counts(option_counts) -> (Dict, Dict):
+    """
+    Process option counts and identify 'Other' option details.
+
+    Parameters:
+        option_counts (List): The list of option counts from the database query.
+
+    Returns:
+        (Dict, Dict): A tuple containing the statistics dictionary and details of the 'Other' option.
+    """
+    other_option_details = next(
+        ({'option_id': oc.answer_option_id, 'text': oc.option_text, 'count': 0} for oc in option_counts if
+         oc.option_text == "Άλλο"), None)
+
+    statistics_dict = {}
+    for oc in option_counts:
+        if oc.answer_option_id in statistics_dict:
+            statistics_dict[oc.answer_option_id]['count'] += oc.count
+        else:
+            statistics_dict[oc.answer_option_id] = {
+                'option_id': oc.answer_option_id,
+                'text': oc.option_text,
+                'count': oc.count
+            }
+    return statistics_dict, other_option_details
+
+
+def update_statistics_with_all_options(statistics_dict: Dict, all_options) -> None:
+    """
+    Ensure that all options for a question are included in the statistics dictionary.
+
+    Parameters:
+        statistics_dict (Dict): The dictionary containing current statistics.
+        all_options (List): The list of all options for the question.
+
+    Returns:
+        None
+    """
+    for option in all_options:
+        if option.id not in statistics_dict:
+            statistics_dict[option.id] = {
+                'option_id': option.id,
+                'text': option.option_text,
+                'count': 0
+            }
+
+
+def process_free_text_answers(db: Session, question: Models_Question, other_option_details: Dict, answer_model) -> (
+        List[str], Dict):
+    """
+    Process free text answers for 'Other' option.
+
+    Parameters:
+        db (Session): The database session used for the operation.
+        question (Models_Question): The question for which free text answers are being processed.
+        other_option_details (Dict): Details of the 'Other' option.
+        answer_model: The model class for the answer table (UserAnswer or CompanyAnswer).
+
+    Returns:
+        (List[str], Dict): A tuple containing the list of free text responses and updated 'Other' option details.
+    """
+    free_text_answers = db.query(answer_model.answer_text).filter(
+        answer_model.question_id == question.id,
+        answer_model.answer_option_id == other_option_details['option_id'],
+        answer_model.answer_text.isnot(None)
+    ).all()
+    free_text_responses = [answer.answer_text for answer in free_text_answers]
+    unique_responses = set(free_text_responses)
+    other_option_details['count'] = len(unique_responses)
+    return free_text_responses, other_option_details

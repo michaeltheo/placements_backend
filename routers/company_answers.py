@@ -37,7 +37,6 @@ def submit_company_answers_endpoint(submissions: List[AnswerSubmission], interns
     Raises:
     - HTTPException: If the token is invalid or expired.
     """
-    print('23tr2343')
     try:
         # Verify the provided JWT token
         payload = verify_jwt(token)
