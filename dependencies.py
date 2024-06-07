@@ -19,11 +19,11 @@ def get_db():
 
 # Dependency to get the current user
 def get_current_user(db: Session = Depends(get_db), placements_access_token: str = Cookie(None)):
-    print(placements_access_token)
     try:
         # Check if the token is present
         if placements_access_token is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token not provided try login.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Δεν βρέθηκε token, δοκιμάστε να συνδεθείτε ξανά.")
 
         # Verify the JWT token
         payload = verify_jwt(placements_access_token)
@@ -31,13 +31,13 @@ def get_current_user(db: Session = Depends(get_db), placements_access_token: str
         # Extract user ID from the token payload
         user_id: int = int(payload.get("sub"))
         if user_id is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρο περιεχόμενο token.")
 
         # Fetch the user from the database using the user ID
         user = get_user_by_id(db, user_id)
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε.")
 
         return user
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Μη έγκυρο ή ληγμένο token.")

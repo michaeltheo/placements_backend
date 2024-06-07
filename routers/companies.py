@@ -38,7 +38,7 @@ async def read_all_companies_endpoint(
     """
     companies, total_items = get_all_companies(db, name, page, items_per_page)
     return ResponseTotalItems(data=companies, total_items=total_items,
-                              message=Message(detail="All companies retrieved successfully."))
+                              message=Message(detail="Όλες οι εταιρείες ανακτήθηκαν με επιτυχία."))
 
 
 @router.post("/", response_model=ResponseWrapper[Company], status_code=status.HTTP_200_OK)
@@ -46,12 +46,13 @@ async def create_company_endpoint(company_data: CompanyBase, db: Session = Depen
                                   current_user: Users = Depends(get_current_user)):
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='User is not authorized to perform this operation.')
+                            detail='Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.')
     company_exists = get_company_by_AFM(db, company_data.AFM)
     if company_exists:
-        raise HTTPException(status_code=400, detail="A company with this AFM already exists.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μια εταιρεία με αυτό το ΑΦΜ υπάρχει ήδη.")
     company = create_company(db, company_data)
-    return ResponseWrapper(data=company, message=Message(detail=f'Company {company.name} created successfully.'))
+    return ResponseWrapper(data=company,
+                           message=Message(detail=f'Η εταιρεία {company.name} δημιουργήθηκε με επιτυχία.'))
 
 
 @router.put('/{company_id}', response_model=ResponseWrapper[Company], status_code=status.HTTP_200_OK)
@@ -74,9 +75,9 @@ async def update_company_endpoint(company_id: int, company_data: CompanyBase, db
                             detail='User is not authorized to perform this operation.')
     updated_company = update_company(db, company_id, company_data)
     if updated_company is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Company not found')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Η εταιρεία δεν βρέθηκε')
     return ResponseWrapper(data=updated_company,
-                           message=Message(detail=f'Company {updated_company.name} updated successfully.'))
+                           message=Message(detail=f'Η εταιρεία {updated_company.name} ενημερώθηκε με επιτυχία.'))
 
 
 @router.get("/delete/{company_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -95,10 +96,11 @@ async def delete_company_endpoint(company_id: int, db: Session = Depends(get_db)
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="User is not authorized to perform this operation.")
+                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
 
     deleted = delete_company(db, company_id)
     if deleted:
-        return Message(detail="Company successfully deleted.")
+        return Message(detail="Η εταιρεία διαγράφηκε με επιτυχία.")
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found or could not be deleted.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Η εταιρεία δεν βρέθηκε ή δεν ήταν δυνατή η διαγραφή της.")

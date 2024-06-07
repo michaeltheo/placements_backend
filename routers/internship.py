@@ -31,7 +31,8 @@ async def get_all_internships_endpoint(
         items_per_page: int = Query(10, description="Number of items per page")
 ):
     if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can access this endpoint")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Μόνο οι διαχειριστές μπορούν να έχουν πρόσβαση σε αυτήν την ενέργεια")
 
     internships, total_items = get_all_internships(
         db=db,
@@ -46,7 +47,7 @@ async def get_all_internships_endpoint(
     return ResponseTotalItems(
         data=internships,
         total_items=total_items,
-        message=Message(detail="Fetched internships successfully")
+        message=Message(detail="Οι πρακτικές ασκήσεις ανακτήθηκαν με επιτυχία")
     )
 
 
@@ -60,7 +61,8 @@ async def create_or_update_internship_endpoint(
     Create a new internship or update an existing one. The user can only create/update their own internship.
     """
     new_internship = create_or_update_internship(db=db, user_id=current_user.id, internship_data=internship)
-    return ResponseWrapper(data=new_internship, message=Message(detail="Internship created or updated successfully"))
+    return ResponseWrapper(data=new_internship,
+                           message=Message(detail="Η πρακτική άσκηση δημιουργήθηκε ή ενημερώθηκε με επιτυχία."))
 
 
 @router.get('/company/{company_id}', response_model=ResponseTotalItems[List[InternshipRead]],
@@ -76,17 +78,18 @@ async def get_internships_by_company_endpoint(
 ):
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='User is not authorized to perform this operation.')
+                            detail='Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.')
 
     internships, total_items = get_internships_by_company(db, company_id, program, internship_status, page,
                                                           items_per_page)
     if not internships:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No internships found for this company.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Δεν βρέθηκαν πρακτικές ασκήσεις για αυτήν την εταιρεία.")
 
     return ResponseTotalItems(
         data=internships,
         total_items=total_items,
-        message=Message(detail='Fetched internships successfully')
+        message=Message(detail='Οι πρακτικές ασκήσεις ανακτήθηκαν με επιτυχία')
     )
 
 
@@ -95,7 +98,8 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
                                           current_user: Users = Depends(get_current_user)):
     internship = get_user_internship(db, user_id)
     if internship is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No internship found for this user.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Δεν βρέθηκε πρακτική άσκηση για αυτόν τον χρήστη.")
     company = get_company(db, internship.company_id)
     internship_response = InternshipRead(
         id=internship.id,
@@ -108,7 +112,7 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
         company_name=company.name if company else None
     )
     return ResponseWrapper(data=internship_response, message=Message(
-        detail=f'Fetched intership for user {current_user.first_name} {current_user.last_name}'))
+        detail=f'Η πρακτική άσκηση ανακτήθηκε για τον χρήστη {current_user.first_name} {current_user.last_name}'))
 
 
 @router.get("/delete/{internship_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -127,14 +131,14 @@ async def delete_internship_endpoint(internship_id: int, db: Session = Depends(g
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="User is not authorized to perform this operation.")
+                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
 
     deleted = delete_internship(db, internship_id)
     if deleted:
-        return Message(detail="Internship successfully deleted.")
+        return Message(detail="Η πρακτική άσκηση διαγράφηκε με επιτυχία.")
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Internship not found or could not be deleted.")
+                            detail="Η πρακτική άσκηση δεν βρέθηκε ή δεν ήταν δυνατή η διαγραφή της.")
 
 
 @router.put("/{internship_id}", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
@@ -148,8 +152,9 @@ async def update_internship_status_endpoint(
     Update the details of an internship, including its status. Only accessible by admin users.
     """
     if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can update internship status")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Μόνο οι διαχειριστές μπορούν να ενημερώσουν την κατάσταση της πρακτικής άσκησης")
 
     updated_internship = update_internship_status(db=db, internship_id=internship_id,
                                                   internship_status=internship_status)
-    return ResponseWrapper(data=updated_internship, message=Message(detail="Internship updated successfully"))
+    return ResponseWrapper(data=updated_internship, message=Message(detail="Η πρακτική άσκηση ενημερώθηκε με επιτυχία"))

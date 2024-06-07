@@ -59,8 +59,6 @@ def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, use
     """
     if dikaiologitika.submission_time is None:
         dikaiologitika.submission_time = determine_submission_time(internship_program, dikaiologitika.type)
-        if dikaiologitika.submission_time is None:
-            print('elousa')
 
     utc_now = datetime.utcnow()
     utc_now = utc_now.replace(tzinfo=pytz.utc)  # Make the datetime timezone-aware in UTC
@@ -200,7 +198,6 @@ def delete_file(db: Session, file_id: int, user_id: int) -> bool:
     - bool: True if the document was successfully deleted, False if the document was not found.
     """
     db_file = db.query(Dikaiologitika).filter(Dikaiologitika.id == file_id, Dikaiologitika.user_id == user_id).first()
-    print(db_file, file_id, user_id)
     if db_file is None:
         return False
     db.delete(db_file)
