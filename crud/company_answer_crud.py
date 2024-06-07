@@ -127,3 +127,19 @@ def get_question_with_company_answers(db: Session, internship_id: int) -> List[Q
             company_responses.append(question_detail)
 
     return company_responses
+
+
+def delete_company_answers(db: Session, internship_id: int) -> bool:
+    """
+     Deletes all answers associated with a specific company for an internship.
+
+     :param db: Database session.
+     :param internship_id: ID of the internship whose company answers are to be deleted.
+     :return: True if any rows were deleted, otherwise False.
+     """
+    rows_deleted = db.query(Models_CompanyAnswer).filter(
+        Models_CompanyAnswer.internship_id == internship_id
+    ).delete(synchronize_session='fetch')
+    db.commit()
+
+    return rows_deleted > 0

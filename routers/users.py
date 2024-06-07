@@ -136,7 +136,6 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
     else:
         # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
         user_dict = user_data.dict(exclude_unset=True)
-        print(user_dict)
         # Create a new user in the database.
         new_user = create_user(db=db, user=user_dict)
         # Determine if the new user is an admin and generate a new access token.
