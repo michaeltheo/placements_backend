@@ -6,7 +6,7 @@ from starlette import status
 
 from crud.company_crud import get_company
 from crud.user_crud import get_user_by_id
-from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies
+from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies, Dikaiologitika
 from schemas.internship_schema import InternshipCreate, InternshipAllRead
 
 
@@ -143,7 +143,7 @@ def get_internship_by_id(db: Session, internship_id: int) -> Optional[Internship
 
 def delete_internship(db: Session, internship_id: int) -> bool:
     """
-    Delete an internship from the database.
+    Delete an internship from the database, along with all associated files.
 
     Parameters:
     - db (Session): Database session.
@@ -154,6 +154,12 @@ def delete_internship(db: Session, internship_id: int) -> bool:
     """
     internship = get_internship_by_id(db, internship_id)
     if internship:
+        # Delete all associated files
+        files = db.query(Dikaiologitika).filter(Dikaiologitika.user_id == internship.user_id).all()
+        for file in files:
+            db.delete(file)
+
+        # Delete the internship
         db.delete(internship)
         db.commit()
         return True
