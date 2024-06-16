@@ -1,16 +1,16 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
 from crud.company_crud import get_company
-from crud.intership_crud import get_user_internship, get_internships_by_company, delete_internship, \
+from crud.intership_crud import get_user_internship, delete_internship, \
     create_or_update_internship, update_internship_status, get_all_internships
 from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
-from models import Users, InternshipProgram, InternshipStatus
-from schemas.internship_schema import InternshipRead, InternshipCreate, InternshipAllRead
+from models import Users, InternshipProgram, InternshipStatus, Department
+from schemas.internship_schema import InternshipRead, InternshipCreate, InternshipAllRead, InternshipUpdate
 from schemas.response import ResponseWrapper, Message, ResponseTotalItems
 
 router = APIRouter(
@@ -23,6 +23,7 @@ router = APIRouter(
 async def get_all_internships_endpoint(
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user),
+        department: Optional[Department] = Query(None, description='Filter by Department'),
         internship_status: Optional[InternshipStatus] = Query(None, description="Filter by Internship Status"),
         program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
         user_am: Optional[str] = Query(None, description="Filter by User AM"),
@@ -37,6 +38,7 @@ async def get_all_internships_endpoint(
     internships, total_items = get_all_internships(
         db=db,
         internship_status=internship_status,
+        department=department,
         program=program,
         user_am=user_am,
         company_name=company_name,
@@ -53,7 +55,7 @@ async def get_all_internships_endpoint(
 
 @router.post("/", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
 async def create_or_update_internship_endpoint(
-        internship: InternshipCreate,
+        internship: Union[InternshipCreate, InternshipUpdate],
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user)
 ):
@@ -63,34 +65,6 @@ async def create_or_update_internship_endpoint(
     new_internship = create_or_update_internship(db=db, user_id=current_user.id, internship_data=internship)
     return ResponseWrapper(data=new_internship,
                            message=Message(detail="Η πρακτική άσκηση δημιουργήθηκε ή ενημερώθηκε με επιτυχία."))
-
-
-@router.get('/company/{company_id}', response_model=ResponseTotalItems[List[InternshipRead]],
-            status_code=status.HTTP_200_OK)
-async def get_internships_by_company_endpoint(
-        company_id: int,
-        db: Session = Depends(get_db),
-        current_user: Users = Depends(get_current_user),
-        program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
-        internship_status: Optional[InternshipStatus] = Query(None, description="Filter by Internship Status"),
-        page: int = Query(1, description="Page number"),
-        items_per_page: int = Query(10, description="Number of items per page")
-):
-    if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.')
-
-    internships, total_items = get_internships_by_company(db, company_id, program, internship_status, page,
-                                                          items_per_page)
-    if not internships:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Δεν βρέθηκαν πρακτικές ασκήσεις για αυτήν την εταιρεία.")
-
-    return ResponseTotalItems(
-        data=internships,
-        total_items=total_items,
-        message=Message(detail='Οι πρακτικές ασκήσεις ανακτήθηκαν με επιτυχία')
-    )
 
 
 @router.get('/{user_id}', response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
@@ -105,6 +79,7 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
         id=internship.id,
         user_id=internship.user_id,
         company_id=internship.company_id,
+        department=internship.department,
         program=internship.program,
         start_date=internship.start_date,
         end_date=internship.end_date,

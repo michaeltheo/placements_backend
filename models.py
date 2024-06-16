@@ -28,17 +28,17 @@ class QuestionnaireType(str, Enum):
 
 # Define departments
 class Department(str, Enum):
-    IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
-    EL_TEITHE = 'ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    IT_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
+    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
     IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
 # Define internship programs
 class InternshipProgram(str, Enum):
-    TEITHE_OAED = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΟΑΕΔ"
-    ESPA = "ΠΑΛΑΙΟ/NEO ΤΜΗΜΑ ΕΣΠΑ"
-    TEITHE_JOB_RECOGNITION = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
-    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΝΕΟ ΤΜΗΜΑ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
+    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΟΑΕΔ"
+    ESPA = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΕΣΠΑ"
+    TEITHE_JOB_RECOGNITION = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
+    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
 
 
 # Define internship statuses
@@ -140,6 +140,7 @@ class Internship(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     company_id = Column(Integer, ForeignKey('companies.id'), nullable=True)
+    department = Column(SQLAlchemyEnum(Department), nullable=False)
     program = Column(SQLAlchemyEnum(InternshipProgram), nullable=False)
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)

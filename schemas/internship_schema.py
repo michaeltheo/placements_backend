@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, validator
 
+from schemas.user_schema import Department
+
 
 class InternshipProgram(str, Enum):
     """
@@ -14,10 +16,10 @@ class InternshipProgram(str, Enum):
     - ESPA: Represents the ESPA program.
     - EMPLOYER_FINANCED: Represents internships exclusively financed by the employer.
     """
-    TEITHE_OAED = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΟΑΕΔ"
-    ESPA = "ΠΑΛΑΙΟ/NEO ΤΜΗΜΑ ΕΣΠΑ"
-    TEITHE_JOB_RECOGNITION = "ΠΑΛΑΙΟ ΤΜΗΜΑ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
-    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΝΕΟ ΤΜΗΜΑ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
+    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΟΑΕΔ"
+    ESPA = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΕΣΠΑ"
+    TEITHE_JOB_RECOGNITION = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
+    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
 
 
 class InternshipStatus(str, Enum):
@@ -46,6 +48,7 @@ class InternshipBase(BaseModel):
     """
     company_id: Optional[int] = None
     program: InternshipProgram
+    department: Department
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -63,10 +66,10 @@ class InternshipBase(BaseModel):
 
 
 class InternshipCreate(InternshipBase):
-    """
+    """ 
     Schema for creating a new internship. Inherits from InternshipBase.
     """
-    pass
+    id: Optional[int] = None
 
 
 class InternshipUpdate(InternshipBase):
@@ -115,6 +118,7 @@ class InternshipAllRead(BaseModel):
     """
     id: int
     program: InternshipProgram
+    department: Department
     start_date: Optional[datetime]
     end_date: Optional[datetime]
     status: InternshipStatus
@@ -123,6 +127,7 @@ class InternshipAllRead(BaseModel):
     user_last_name: str
     user_am: str
     company_name: Optional[str]
+    company_id: Optional[int]
 
     class Config:
         from_attributes = True

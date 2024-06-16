@@ -19,8 +19,16 @@ class UserRole(str, Enum):
 
 
 class Department(str, Enum):
-    IT_TEITHE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
-    EL_TEITHE = 'ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    """
+    Enum for departments within the educational institution, representing the various academic departments a user can belong to.
+
+    Values:
+    - IT_TEITHE: Represents the former Department of Computer Engineering.
+    - EL_TEITHE: Represents the former Department of Electronics.
+    - IHU_IEE: Represents the Department of Computer and Electronic Systems Engineering at the International Hellenic University.
+    """
+    IT_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
+    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
     IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
