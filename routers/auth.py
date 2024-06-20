@@ -1,4 +1,3 @@
-# auth_router.py
 import secrets
 import urllib
 from datetime import timedelta, datetime, timezone
@@ -197,7 +196,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
     """
     if not access_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Δεν βρέθηκε token, δοκιμάστε να συνδεθείτε ξανά.")
+                            detail="Παρουσιάστηκε σφάλμα, δοκιμάστε να συνδεθείτε ξανά.")
     try:
         # Verify the JWT and decode it to get the user information
         payload = verify_jwt(access_token)

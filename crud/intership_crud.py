@@ -4,7 +4,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
+from crud.company_answer_crud import delete_company_answers
 from crud.company_crud import get_company
+from crud.user_answer_crud import delete_user_answers
 from crud.user_crud import get_user_by_id
 from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies, Dikaiologitika, \
     Department
@@ -144,6 +146,10 @@ def delete_internship(db: Session, internship_id: int) -> bool:
         files = db.query(Dikaiologitika).filter(Dikaiologitika.user_id == internship.user_id).all()
         for file in files:
             db.delete(file)
+        # delete user answers for internship
+        delete_user_answers(db, internship.user_id)
+        # delete company answers for internship
+        delete_company_answers(db, internship.id)
 
         # Delete the internship
         db.delete(internship)

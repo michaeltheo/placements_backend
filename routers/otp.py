@@ -1,4 +1,3 @@
-# otp_router.py
 from datetime import timedelta, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -69,7 +68,7 @@ async def validate_otp(otp: str, db: Session = Depends(get_db)):
         internship = get_user_internship(db, user.id)
         if internship:
             company = get_company(db, internship.company_id)
-            if  company is None:
+            if company is None:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Αυτή η πρακτική άσκηση δεν έχει εταιρεία")
             access_token = create_short_lived_token(data={"sub": str(user.id)})

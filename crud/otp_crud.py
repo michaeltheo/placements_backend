@@ -55,6 +55,25 @@ def generate_otp(db: Session, user_id: int) -> OTP:
     return db_otp
 
 
+def delete_otp(db: Session, otp: str) -> bool:
+    """
+    Delete the provided OTP from the database.
+
+    Parameters:
+    - db (Session): The database session.
+    - otp (str): The OTP to delete.
+
+    Returns:
+    - bool: True if the OTP was deleted, False otherwise.
+    """
+    db_otp = db.query(OTP).filter(OTP.otp == otp).first()
+    if db_otp:
+        db.delete(db_otp)
+        db.commit()
+        return True
+    return False
+
+
 def validate_otp(db: Session, otp: str) -> Optional[Users]:
     """
     Validate the provided OTP. If valid, return the associated user.
@@ -68,6 +87,7 @@ def validate_otp(db: Session, otp: str) -> Optional[Users]:
     """
     db_otp = db.query(OTP).filter(OTP.otp == otp).first()
     if db_otp and db_otp.expiry >= datetime.now():
+        delete_otp(db, otp)
         user = db.query(Users).filter(Users.id == db_otp.user_id).first()
         return user
     return None

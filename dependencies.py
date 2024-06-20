@@ -23,7 +23,7 @@ def get_current_user(db: Session = Depends(get_db), placements_access_token: str
         # Check if the token is present
         if placements_access_token is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Δεν βρέθηκε token, δοκιμάστε να συνδεθείτε ξανά.")
+                                detail="Παρουσιάστηκε σφάλμα, δοκιμάστε να συνδεθείτε ξανά.")
 
         # Verify the JWT token
         payload = verify_jwt(placements_access_token)
