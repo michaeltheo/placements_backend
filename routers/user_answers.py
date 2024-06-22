@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from crud.user_answer_crud import submit_user_answers, get_question_with_user_answers, delete_user_answers
 from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
@@ -36,7 +37,7 @@ def submit_answers_endpoint(submissions: List[AnswerSubmission], db: Session = D
     - HTTPException: If the current_user's ID does not match the user_id, indicating an attempt to submit answers for another user.
     """
     submit_user_answers(db, current_user.id, submissions)
-    return Message(detail='Οι απαντήσεις υποβλήθηκαν με επιτυχία.')
+    return Message(detail=Messages.ANSWERS_SUBMITTED_SUCCESS)
 
 
 @router.get("/{user_id}", response_model=ResponseWrapper[List[QuestionWithAnswers]])
@@ -58,9 +59,9 @@ async def get_user_responses_endpoint(user_id: int, db: Session = Depends(get_db
     """
     if current_user.id != user_id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Η πρόσβαση περιορίζεται στις δικές σας απαντήσεις ή στον διαχειριστή.")
+                            detail=Messages.UNAUTHORIZED_USER)
     user_responses = get_question_with_user_answers(db, user_id)
-    return ResponseWrapper(data=user_responses, message=Message(detail="Οι απαντήσεις ανακτήθηκαν με επιτυχία."))
+    return ResponseWrapper(data=user_responses, message=Message(detail=Messages.ANSWERS_RETRIEVED_SUCCESS))
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
@@ -82,13 +83,13 @@ async def delete_answers_endpoint(user_id: int, db: Session = Depends(get_db),
     """
     if current_user.id != user_id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Η διαγραφή περιορίζεται στις δικές σας απαντήσεις ή στον διαχειριστή.")
+                            detail=Messages.UNAUTHORIZED_USER)
     deletion_successful = delete_user_answers(db, user_id)
     if deletion_successful:
         return Message(
-            detail=f"Όλες οι απαντήσεις του χρήστη έχουν διαγραφεί.")
+            detail=Messages.ANSWERS_DELETED_SUCCESS)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Δεν βρέθηκαν απαντήσεις για διαγραφή ή δεν ήταν δυνατή η διαγραφή."
+            detail=Messages.USER_ANSWERS_DELETION_FAILED
         )

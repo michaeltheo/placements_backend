@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from models import Question as Models_Question, AnswerOption as Models_Answer_Option, UserAnswer as Models_UserAnswer, \
     CompanyAnswer as Models_CompanyAnswers
 from schemas.question_schema import QuestionCreate, QuestionType, QuestionUpdate, QuestionnaireType
@@ -27,7 +28,7 @@ def create_question_db(db: Session, question_data: QuestionCreate) -> Models_Que
     if question_data.question_type in [QuestionType.multiple_choice,
                                        QuestionType.multiple_choice_with_text] and not question_data.answer_options:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Για τις ερωτήσεις πολλαπλής επιλογής απαιτείται μία απο τις επιλογές απάντησης.")
+                            detail=Messages.MULTIPLE_ANSWERS_CHECK)
 
     db_question = Models_Question(
         question_text=question_data.question_text,
@@ -90,7 +91,7 @@ def update_question(db: Session, question_id: int, question_update: QuestionUpda
 
     if db_question.question_type == QuestionType.free_text and question_update.answer_options is not None:
         if len(question_update.answer_options) > 0:
-            raise ValueError("Free text questions should not have answer options.")
+            raise ValueError(Messages.FREE_TEXT_ANSWER_OPTION_CHECK)
 
     if question_update.question_text is not None:
         db_question.question_text = question_update.question_text

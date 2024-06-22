@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from core.auth import create_short_lived_token
 from core.config import settings
+from core.messages import Messages
 from crud import otp_crud
 from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship
@@ -36,7 +37,7 @@ async def generate_otp(current_user: Users = Depends(get_current_user), db: Sess
     """
     user = db.query(Users).filter(Users.id == current_user.id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.USER_NOT_FOUND)
 
     try:
 
@@ -44,10 +45,8 @@ async def generate_otp(current_user: Users = Depends(get_current_user), db: Sess
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # Send the OTP to the user's email or phone number (implementation not shown)
-    # For simplicity, we will just print it here
     otp_response = OtpBase(code=otp.otp, expiry=otp.expiry)
-    return ResponseWrapper(data=otp_response, message=Message(detail="Ο κωδικός OTP δημιουργήθηκε με επιτυχία"))
+    return ResponseWrapper(data=otp_response, message=Message(detail=Messages.OTP_GENERATION_SUCCESS))
 
 
 @router.get('/validate/{otp}', response_model=ResponseWrapper[OtpValid], status_code=status.HTTP_200_OK)
@@ -70,7 +69,7 @@ async def validate_otp(otp: str, db: Session = Depends(get_db)):
             company = get_company(db, internship.company_id)
             if company is None:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="Αυτή η πρακτική άσκηση δεν έχει εταιρεία")
+                                    detail=Messages.COMPANY_NOT_FOUND_FOR_INTERNSHIP)
             access_token = create_short_lived_token(data={"sub": str(user.id)})
             otp_response = OtpValid(
                 user_id=user.id,
@@ -83,8 +82,8 @@ async def validate_otp(otp: str, db: Session = Depends(get_db)):
                 token=access_token,
             )
             return ResponseWrapper(data=otp_response,
-                                   message=Message(detail="Η επικύρωση του κωδικού OTP ήταν επιτυχής!"))
+                                   message=Message(detail=Messages.OTP_VALIDATION_SUCCESS))
         else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Η πρακτική άσκηση δεν βρέθηκε.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.INTERNSHIP_NOT_FOUND)
     else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρος ή ληγμένος κωδικός OTP.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.INVALID_OR_EXPIRED_OTP)

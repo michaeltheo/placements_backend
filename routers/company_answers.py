@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from core.auth import verify_jwt
+from core.messages import Messages
 from crud.company_answer_crud import submit_company_answers, get_question_with_company_answers, delete_company_answers
 from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
@@ -42,16 +43,15 @@ def submit_company_answers_endpoint(submissions: List[AnswerSubmission], interns
         payload = verify_jwt(token)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Μη έγκυρο ή ληγμένο token. Παρακαλώ εισάγετε νέο κωδικό OTP.")
+                            detail=Messages.COMPANY_ANSWERS_INVALID_TOKEN)
 
     # Token is verified, proceed with submitting company answers
     submit_company_answers(db, internship_id, submissions)
-    return Message(detail='Οι απαντήσεις της εταιρείας υποβλήθηκαν με επιτυχία.')
+    return Message(detail=Messages.COMPANY_ANSWERS_SUCCESSFULLY_SUBMIT)
 
 
 @router.get("/{internship_id}", response_model=ResponseWrapper[List[QuestionWithAnswers]])
-async def get_company_responses_endpoint(internship_id: int, db: Session = Depends(get_db),
-                                         current_user: Users = Depends(get_current_user)):
+async def get_company_responses_endpoint(internship_id: int, db: Session = Depends(get_db), ):
     """
     Get all responses submitted by a company for a specific internship.
 
@@ -60,14 +60,13 @@ async def get_company_responses_endpoint(internship_id: int, db: Session = Depen
     Parameters:
     - internship_id (int): The ID of the internship whose responses are being requested.
     - db (Session): Dependency injection for the database session.
-    - current_user (Users): The current user making the request, injected automatically.
 
     Returns:
     - ResponseWrapper[List[QuestionWithAnswers]]: A wrapper containing the list of questions with the company's answers and a success message.
     """
     company_responses = get_question_with_company_answers(db, internship_id)
     return ResponseWrapper(data=company_responses,
-                           message=Message(detail="Οι απαντήσεις της εταιρείας ανακτήθηκαν με επιτυχία."))
+                           message=Message(detail=Messages.COMPANY_ANSWERS_RETRIEVED))
 
 
 @router.delete("/{internship_id}", status_code=status.HTTP_200_OK)
@@ -89,13 +88,13 @@ async def delete_company_answers_endpoint(internship_id: int, db: Session = Depe
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Η διαγραφή περιορίζεται στις δικές σας απαντήσεις ή στον διαχειριστή.")
+                            detail=Messages.UNAUTHORIZED_USER)
     deletion_successful = delete_company_answers(db, internship_id)
     if deletion_successful:
         return Message(
-            detail=f"Όλες οι απαντήσεις της εταιρείας έχουν διαγραφεί.")
+            detail=Messages.COMPANY_DELETED_SUCCESS)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Δεν βρέθηκαν απαντήσεις για διαγραφή ή δεν ήταν δυνατή η διαγραφή."
+            detail=Messages.COMPANY_DELETION_FAILED
         )

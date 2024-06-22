@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from models import CompanyAnswer as Models_CompanyAnswer, AnswerOption, QuestionnaireType
 from models import Question as Models_Question
 from schemas.question_schema import QuestionType
@@ -31,27 +32,27 @@ def submit_company_answers(db: Session, internship_id: int, submissions: List[An
         Models_CompanyAnswer.internship_id == internship_id).first()
     if existing_answers:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Company has already submitted answers for this internship.")
+                            detail=Messages.COMPANY_ALREADY_SUBMITTED_ANSWERS)
 
     for submission in submissions:
         # Retrieve the question by its ID
         question = db.query(Models_Question).filter(Models_Question.id == submission.question_id).first()
         if not question:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Question with ID {submission.question_id} not found.")
+                                detail=Messages.QUESTION_NOT_FOUND.format(question_id=submission.question_id))
 
         # Ensure the question is meant for company questionnaires
         if question.question_questionnaire != QuestionnaireType.COMPANY:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Question with ID {submission.question_id} is not a company question.")
+                                detail=Messages.NOT_A_COMPANY_QUESTION.format(question_id=submission.question_id))
 
         # Validate the provided answer option IDs
         valid_option_ids = {option.id for option in question.answer_options}
         invalid_option_ids = set(submission.answer_option_ids or []) - valid_option_ids
         if invalid_option_ids:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"Invalid answer option IDs {list(invalid_option_ids)} for question ID {submission.question_id}.")
-
+                                detail=Messages.INVALID_ANSWER_OPTION_IDS.format(
+                                    invalid_option_ids=list(invalid_option_ids), question_id=submission.question_id))
         # Delete any existing answers for the given question and internship
         db.query(Models_CompanyAnswer).filter(Models_CompanyAnswer.internship_id == internship_id,
                                               Models_CompanyAnswer.question_id == submission.question_id).delete(
@@ -62,7 +63,7 @@ def submit_company_answers(db: Session, internship_id: int, submissions: List[An
         if not question.supports_multiple_answers and submission.answer_option_ids and len(
                 submission.answer_option_ids) > 1:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="This question does not support multiple answers.")
+                                detail=Messages.MULTIPLE_ANSWERS_NOT_SUPPORTED)
 
         # Handle free text answers
         if question.question_type == QuestionType.free_text and submission.answer_text:

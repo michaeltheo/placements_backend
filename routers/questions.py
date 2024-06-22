@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from crud.questions_crud import create_question_db, get_questions, update_question, delete_question, \
     get_questions_statistics
 from crud.user_crud import is_admin
@@ -26,7 +27,7 @@ async def get_questions_types_endpoint(
         A list of question type values wrapped in a `ResponseWrapper` with a success message.
     """
     question_list = [e.value for e in QuestionType]
-    return ResponseWrapper(data=question_list, message=Message(detail="Λίστα όλων των τύπων ερωτήσεων"))
+    return ResponseWrapper(data=question_list, message=Message(detail=Messages.QUESTION_TYPES_RETRIEVED))
 
 
 @router.post("/", response_model=ResponseWrapper[List[Question]], status_code=status.HTTP_200_OK)
@@ -50,14 +51,14 @@ async def admin_create_questions_endpoint(
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
     new_questions = []
     for question_data in questions_data:
         new_question = create_question_db(db, question_data)
         pydantic_question = Question.from_orm(new_question)
         new_questions.append(pydantic_question)
 
-    return ResponseWrapper(data=new_questions, message=Message(detail="Οι ερωτήσεις δημιουργήθηκαν με επιτυχία."))
+    return ResponseWrapper(data=new_questions, message=Message(detail=Messages.QUESTIONS_CREATED_SUCCESS))
 
 
 @router.get('/', response_model=ResponseWrapper[List[Question]], status_code=status.HTTP_200_OK)
@@ -76,7 +77,7 @@ def get_all_questions_endpoint(
         A list of all question objects wrapped in a `ResponseWrapper` with a success message.
     """
     db_questions = get_questions(db=db, questionnaire_type=questionnaire_type)
-    return ResponseWrapper(data=db_questions, message=Message(detail="Οι ερωτήσεις ανακτήθηκαν με επιτυχία."))
+    return ResponseWrapper(data=db_questions, message=Message(detail=Messages.QUESTIONS_RETRIEVED_SUCCESS))
 
 
 @router.put('/{id}', response_model=ResponseWrapper[Question], status_code=status.HTTP_200_OK)
@@ -100,16 +101,16 @@ def admin_update_question_endpoint(
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
     if question_update.question_type == QuestionType.free_text and question_update.answer_options:
         if len(question_update.answer_options) > 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Οι ερωτήσεις ελεύθερου κειμένου δεν μπορούν να έχουν επιλογές απάντησης.")
+                                detail=Messages.FREE_TEXT_ANSWER_OPTION_CHECK)
     updated_question = update_question(db=db, question_id=question_id, question_update=question_update)
     if updated_question is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Η ερώτηση δεν βρέθηκε.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.QUESTION_NOT_FOUND)
     return ResponseWrapper(data=updated_question,
-                           message=Message(detail="Η ερώτηση ενημερώθηκε με επιτυχία"))
+                           message=Message(detail=Messages.QUESTION_UPDATED_SUCCESS))
 
 
 @router.delete('/{question_id}', response_model=Message, status_code=status.HTTP_200_OK)
@@ -133,14 +134,14 @@ async def admin_delete_question_endpoint(
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
 
     deletion_successful = delete_question(db=db, question_id=question_id)
     if not deletion_successful:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Η ερώτηση δεν βρέθηκε ή δεν ήταν δυνατή η διαγραφή της.")
+                            detail=Messages.QUESTION_DELETION_FAILED)
 
-    return Message(detail="Η ερώτηση διαγράφηκε")
+    return Message(detail=Messages.QUESTION_DELETED_SUCCESS)
 
 
 @router.get('/stats/answers', response_model=ResponseWrapper[List[QuestionStatistics]], status_code=status.HTTP_200_OK)
@@ -175,6 +176,6 @@ async def admin_get_answers_statistics_endpoint(
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
     stats_list = get_questions_statistics(db=db, questionnaire_type=questionnaire_type)
-    return ResponseWrapper(data=stats_list, message=Message(detail="Τα στατιστικά ανακτήθηκαν με επιτυχία"))
+    return ResponseWrapper(data=stats_list, message=Message(detail=Messages.QUESTION_STATISTICS_RETRIEVED))
