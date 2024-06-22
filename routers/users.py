@@ -7,6 +7,7 @@ from starlette import status
 
 from core.auth import create_access_token
 from core.config import settings
+from core.messages import Messages
 from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, is_super_admin
 from dependencies import get_db, get_current_user
 from models import Users, UserRole, Department
@@ -29,7 +30,7 @@ async def get_department_types_endpoint():
        Returns:
        - ResponseWrapper[List[str]]: A wrapped response containing a list of department types with a success message.
        """
-    return ResponseWrapper(data=Department, message=Message(detail="Λίστα όλων των τύπων Τμημάτων."))
+    return ResponseWrapper(data=Department, message=Message(detail=Messages.DEPARTMENT_TYPES_RETRIEVED))
 
 
 @router.get('/', response_model=ResponseTotalItems[List[User]], status_code=status.HTTP_200_OK)
@@ -63,13 +64,13 @@ async def read_users_endpoint(
         try:
             query = query.filter(Users.role == UserRole(role))
         except KeyError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρος ρόλος.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.INVALID_ROLE)
 
     if department:
         try:
             query = query.filter(Users.department == Department(department))
         except KeyError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μη έγκυρο τμήμα.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.INVALID_DEPARTMENT)
 
     total_items = query.count()
 
@@ -81,7 +82,7 @@ async def read_users_endpoint(
     return ResponseTotalItems(
         data=users,
         total_items=total_items,
-        message=Message(detail="Οι χρήστες ανακτήθηκαν με επιτυχία.")
+        message=Message(detail=Messages.USERS_RETRIEVED_SUCCESS)
     )
 
 
@@ -158,7 +159,7 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
         #     isAdmin=admin_status,
         #     accessToken=access_token,
         # )
-    return ResponseWrapper(data={'access_token': access_token}, message=Message(detail="User processed successfully"))
+    return ResponseWrapper(data={'access_token': access_token}, message=Message(detail=Messages.USER_PROCESSED_SUCCESS))
 
 
 @router.get("/{user_id}/", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)
@@ -185,15 +186,15 @@ async def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
     # Check if the current user is trying to access someone else's information without being an admin.
     if user_id != current_user.id and not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Δεν έχετε εξουσιοδότηση να αποκτήσετε πρόσβαση σε αυτόν τον χρήστη.")
+                            detail=Messages.UNAUTHORIZED_USER)
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if db_user is None:
         # No user found with the provided ID.
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ο χρήστης δεν βρέθηκε.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.USER_NOT_FOUND)
     # User found, return the user's information.
     return ResponseWrapper(data=db_user,
-                           message=Message(detail="Ο χρήστης ανακτήθηκε με επιτυχία"))
+                           message=Message(detail=Messages.USER_RETRIEVED_SUCCESS))
 
 
 @router.put("/set-admin/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -215,16 +216,16 @@ async def set_user_as_admin(user_id: int, db: Session = Depends(get_db),
     - Message: A message indicating the promotion status.
     """
     if not is_super_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Ο χρήστης δεν είναι Super διαχειριστής.')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ο χρήστης δεν βρέθηκε.')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.USER_NOT_FOUND)
     db_user.role = UserRole.ADMIN
     db.commit()
     db.refresh(db_user)
-    return Message(
-        detail=f"Ο χρήστης: {db_user.first_name} {db_user.last_name} προήχθη σε διαχειριστή.")
+    user_name = f"{db_user.first_name} {db_user.last_name}"
+    return Message(detail=Messages.USER_PROMOTED_TO_ADMIN.format(user_name=user_name))
 
 
 @router.put("/set-student/{user_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -246,13 +247,13 @@ async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
     - Message: A message indicating the demotion status.
     """
     if not is_super_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Ο χρήστης δεν είναι Super διαχειριστής.')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
     # Attempt to retrieve the requested user from the database.
     db_user = get_user_by_id(db, user_id)
     if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ο χρήστης δεν βρέθηκε.')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.USER_NOT_FOUND)
     db_user.role = UserRole.STUDENT
     db.commit()
     db.refresh(db_user)
-    return Message(
-        detail=f"Ο χρήστης: {db_user.first_name} {db_user.last_name} υποβαθμίστηκε σε φοιτητή.")
+    user_name = f"{db_user.first_name} {db_user.last_name}"
+    return Message(detail=Messages.USER_DEMOTED_TO_STUDENT.format(user_name=user_name))

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from crud.company_crud import create_company, update_company, delete_company, get_all_companies, get_company_by_AFM
 from crud.user_crud import is_admin
 from dependencies import get_db, get_current_user
@@ -38,7 +39,7 @@ async def read_all_companies_endpoint(
     """
     companies, total_items = get_all_companies(db, name, page, items_per_page)
     return ResponseTotalItems(data=companies, total_items=total_items,
-                              message=Message(detail="Όλες οι εταιρείες ανακτήθηκαν με επιτυχία."))
+                              message=Message(detail=Messages.ALL_COMPANIES_RETRIEVED))
 
 
 @router.post("/", response_model=ResponseWrapper[Company], status_code=status.HTTP_200_OK)
@@ -46,13 +47,13 @@ async def create_company_endpoint(company_data: CompanyBase, db: Session = Depen
                                   current_user: Users = Depends(get_current_user)):
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.')
+                            detail=Messages.UNAUTHORIZED_USER)
     company_exists = get_company_by_AFM(db, company_data.AFM)
     if company_exists:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Μια εταιρεία με αυτό το ΑΦΜ υπάρχει ήδη.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.COMPANY_ALREADY_EXISTS)
     company = create_company(db, company_data)
     return ResponseWrapper(data=company,
-                           message=Message(detail=f'Η εταιρεία {company.name} δημιουργήθηκε με επιτυχία.'))
+                           message=Message(detail=Messages.COMPANY_CREATED_SUCCESS.format(company_name=company.name)))
 
 
 @router.put('/{company_id}', response_model=ResponseWrapper[Company], status_code=status.HTTP_200_OK)
@@ -72,12 +73,13 @@ async def update_company_endpoint(company_id: int, company_data: CompanyBase, db
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail='User is not authorized to perform this operation.')
+                            detail=Messages.UNAUTHORIZED_USER)
     updated_company = update_company(db, company_id, company_data)
     if updated_company is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Η εταιρεία δεν βρέθηκε')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.COMPANY_NOT_FOUND)
     return ResponseWrapper(data=updated_company,
-                           message=Message(detail=f'Η εταιρεία {updated_company.name} ενημερώθηκε με επιτυχία.'))
+                           message=Message(
+                               detail=Messages.COMPANY_UPDATED_SUCCESS.format(company_name=updated_company.name)))
 
 
 @router.get("/delete/{company_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -96,11 +98,11 @@ async def delete_company_endpoint(company_id: int, db: Session = Depends(get_db)
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
 
     deleted = delete_company(db, company_id)
     if deleted:
-        return Message(detail="Η εταιρεία διαγράφηκε με επιτυχία.")
+        return Message(detail=Messages.COMPANY_DELETED_SUCCESS)
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Η εταιρεία δεν βρέθηκε ή δεν ήταν δυνατή η διαγραφή της.")
+                            detail=Messages.COMPANY_DELETION_FAILED)

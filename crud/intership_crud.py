@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from crud.company_answer_crud import delete_company_answers
 from crud.company_crud import get_company
 from crud.user_answer_crud import delete_user_answers
@@ -30,7 +31,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         # Find internship by internship_id
         existing_internship = db.query(InternshipModel).filter_by(id=internship_data.id).first()
         if not existing_internship:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Η πρακτική άσκηση δεν βρέθηκε")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
 
         # Update existing internship
         existing_internship.company_id = internship_data.company_id
@@ -59,7 +60,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         if internship_data.company_id:
             company = get_company(db, internship_data.company_id)
             if company is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Η εταιρεία δεν βρέθηκε")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.COMPANY_NOT_FOUND)
         # Create new internship
         new_internship = InternshipModel(
             user_id=user_id,
@@ -93,7 +94,7 @@ def update_internship_status(db: Session, internship_id: int, internship_status:
     """
     internship = get_internship_by_id(db, internship_id)
     if not internship:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Internship not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
 
     internship.status = internship_status
     db.commit()

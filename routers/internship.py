@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.messages import Messages
 from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship, delete_internship, \
     create_or_update_internship, update_internship_status, get_all_internships
@@ -33,7 +34,7 @@ async def get_all_internships_endpoint(
 ):
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Μόνο οι διαχειριστές μπορούν να έχουν πρόσβαση σε αυτήν την ενέργεια")
+                            detail=Messages.UNAUTHORIZED_USER)
 
     internships, total_items = get_all_internships(
         db=db,
@@ -49,7 +50,7 @@ async def get_all_internships_endpoint(
     return ResponseTotalItems(
         data=internships,
         total_items=total_items,
-        message=Message(detail="Οι πρακτικές ασκήσεις ανακτήθηκαν με επιτυχία")
+        message=Message(detail=Messages.ALL_INTERNSHIPS_RETRIEVED)
     )
 
 
@@ -64,7 +65,7 @@ async def create_or_update_internship_endpoint(
     """
     new_internship = create_or_update_internship(db=db, user_id=current_user.id, internship_data=internship)
     return ResponseWrapper(data=new_internship,
-                           message=Message(detail="Η πρακτική άσκηση δημιουργήθηκε ή ενημερώθηκε με επιτυχία."))
+                           message=Message(detail=Messages.INTERNSHIP_CREATED_OR_UPDATED))
 
 
 @router.get('/{user_id}', response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
@@ -73,7 +74,7 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
     internship = get_user_internship(db, user_id)
     if internship is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Δεν βρέθηκε πρακτική άσκηση για αυτόν τον χρήστη.")
+                            detail=Messages.INTERNSHIP_NOT_FOUND)
     company = get_company(db, internship.company_id)
     internship_response = InternshipRead(
         id=internship.id,
@@ -86,8 +87,9 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
         status=internship.status,
         company_name=company.name if company else None
     )
+    user_name = f"{current_user.first_name} {current_user.last_name}"
     return ResponseWrapper(data=internship_response, message=Message(
-        detail=f'Η πρακτική άσκηση ανακτήθηκε για τον χρήστη {current_user.first_name} {current_user.last_name}'))
+        detail=Messages.INTERNSHIP_RETRIEVED_FOR_USER.format(user_name=user_name)))
 
 
 @router.get("/delete/{internship_id}", response_model=Message, status_code=status.HTTP_200_OK)
@@ -106,14 +108,14 @@ async def delete_internship_endpoint(internship_id: int, db: Session = Depends(g
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Ο χρήστης δεν είναι εξουσιοδοτημένος να εκτελέσει αυτήν την ενέργεια.")
+                            detail=Messages.UNAUTHORIZED_USER)
 
     deleted = delete_internship(db, internship_id)
     if deleted:
-        return Message(detail="Η πρακτική άσκηση διαγράφηκε με επιτυχία.")
+        return Message(detail=Messages.INTERNSHIP_DELETED_SUCCESS)
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Η πρακτική άσκηση δεν βρέθηκε ή δεν ήταν δυνατή η διαγραφή της.")
+                            detail=Messages.INTERNSHIP_DELETION_FAILED)
 
 
 @router.put("/{internship_id}", response_model=ResponseWrapper[InternshipRead], status_code=status.HTTP_200_OK)
@@ -128,8 +130,8 @@ async def update_internship_status_endpoint(
     """
     if not is_admin(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Μόνο οι διαχειριστές μπορούν να ενημερώσουν την κατάσταση της πρακτικής άσκησης")
+                            detail=Messages.UNAUTHORIZED_USER)
 
     updated_internship = update_internship_status(db=db, internship_id=internship_id,
                                                   internship_status=internship_status)
-    return ResponseWrapper(data=updated_internship, message=Message(detail="Η πρακτική άσκηση ενημερώθηκε με επιτυχία"))
+    return ResponseWrapper(data=updated_internship, message=Message(detail=Messages.INTERNSHIP_STATUS_UPDATED))
