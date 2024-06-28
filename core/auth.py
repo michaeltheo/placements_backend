@@ -44,7 +44,7 @@ def create_short_lived_token(data: dict, expires_delta: timedelta = None) -> str
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_FOR_COMPANIES_QUESTIONNARIE_EXPIRES_MINUTES)
+            minutes=settings.ACCESS_TOKEN_FOR_COMPANIES_QUESTIONNAIRE_EXPIRES_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt

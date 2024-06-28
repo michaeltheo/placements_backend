@@ -5,7 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from core.config import Settings
+from core.config import settings
 from models import OTP, Users
 
 
@@ -41,8 +41,8 @@ def generate_otp(db: Session, user_id: int) -> OTP:
 
     # Generate a new OTP
     otp = ''.join(random.choices(string.digits, k=6))
-    # OTP IS VALID FOR 15 MINUTES
-    expiry = datetime.now() + timedelta(minutes=Settings.OTP_CODE_EXPIRES_MINUTES)
+    # OTP IS VALID FOR 1 hour
+    expiry = datetime.now() + timedelta(minutes=settings.OTP_CODE_EXPIRES_MINUTES)
 
     # Delete any existing OTPs for the user
     if existing_otp:
