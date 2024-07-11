@@ -95,7 +95,6 @@ class Users(Base):
     first_name = Column(String)
     last_name = Column(String)
     reg_year = Column(String, nullable=True)
-    fathers_name = Column(String, nullable=True)
     telephone_number = Column(String, nullable=True)
     email = Column(String, nullable=True)
     AM = Column(String, unique=True, nullable=True)

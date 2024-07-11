@@ -65,14 +65,12 @@ class User(UserBase):
        Attributes:
        - id (int): The unique identifier for the user, typically assigned by the database.
        - role (str): The role of the user, expressed as a string. This could be aligned with the UserRole enum for consistency.
-       - fathers_name (str, optional): The user's father's name.
        - telephone_number (str, optional): The user's telephone number.
        - email (str): The user's email address.
        - reg_year (str, optional): The user's registration year.
        """
     id: int = Field(..., description="The unique identifier for the user.")
     role: str = Field(..., description="The role of the user.")
-    fathers_name: Optional[str] = Field(None, description="The user's father's name.")
     telephone_number: Optional[str] = Field(None, description="The user's telephone number.")
     email: Optional[str] = Field(None, description="The user's email address.")
     reg_year: Optional[str] = Field(None, description="The user's registration year.")

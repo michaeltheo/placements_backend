@@ -53,7 +53,6 @@ app.add_middleware(
 # )
 
 # Background task for cleanup OTP
-# Background task for cleanup OTP
 async def schedule_cleanup_otp(interval: int):
     while True:
         await asyncio.sleep(interval)
