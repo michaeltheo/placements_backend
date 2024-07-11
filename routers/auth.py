@@ -42,12 +42,11 @@ async def auth_redirect_endpoint(request: Request, response: Response):
     Returns:
     - RedirectResponse: Redirects the user to the authentication provider.
     """
-    redirect_uri = "http://localhost:3000/auth"
+    redirect_uri = settings.REDIRECT_URI
     scope = "profile,ldap,id,cn,announcements"
     client_id = settings.CLIENT_ID
     state = secrets.token_hex(16)
     request.session['oauth_state'] = state  # Store in session
-    print(f"Session OAuth State: {request.session['oauth_state']}")
 
     params = {
         "client_id": client_id,
@@ -119,7 +118,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             last_name=db_user.last_name,
             AM=db_user.AM,
             reg_year=db_user.reg_year,
-            fathers_name=db_user.fathers_name,
             telephone_number=db_user.telephone_number,
             email=db_user.email,
             role=db_user.role.value,
@@ -138,7 +136,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             'AM': am,
             'department': department,
             'reg_year': profile_data.get('regyear'),
-            'fathers_name': profile_data.get('fathersname;lang-el'),
             'telephone_number': profile_data.get('telephoneNumber'),
             'email': profile_data.get('mail')
         }
@@ -162,7 +159,6 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             first_name=new_user.first_name,
             last_name=new_user.last_name,
             reg_year=new_user.reg_year,
-            fathers_name=new_user.fathers_name,
             telephone_number=new_user.telephone_number,
             email=new_user.email,
             AM=new_user.AM,
@@ -212,7 +208,6 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             "last_name": user.last_name,
             "AM": user.AM,
             "reg_year": user.reg_year,
-            "fathers_name": user.fathers_name,
             "telephone_number": user.telephone_number,
             "email": user.email,
             "department": user.department,
@@ -223,7 +218,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.USER_NOT_FOUND)
             # Convert fields to None if they are None in the database
-        for field in ["fathers_name", "telephone_number", "reg_year", "email"]:
+        for field in ["telephone_number", "reg_year", "email"]:
             if user_response_data[field] is None:
                 user_response_data[field] = None
 

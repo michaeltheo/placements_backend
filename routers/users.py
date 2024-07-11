@@ -86,6 +86,7 @@ async def read_users_endpoint(
     )
 
 
+# TODO: delete in production
 @router.post("/", response_model=ResponseWrapper, status_code=status.HTTP_200_OK)
 async def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
     """
@@ -128,7 +129,6 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
         #     AM=db_user.AM,
         #     role=db_user.role.value,
         #     isAdmin=admin_status,
-        #     fathers_name=db_user.fathers_name,
         #     reg_year=db_user.reg_year,
         #     email=db_user.email,
         #     telephone_number=db_user.telephone_number,
@@ -152,7 +152,6 @@ async def create_return_user_endpoint(response: Response, user_data: UserCreate,
         #     AM=new_user.AM,
         #     role=new_user.role.value,
         #
-        #     fathers_name=new_user.fathers_name,
         #     reg_year=new_user.reg_year,
         #     email=new_user.email,
         #     telephone_number=new_user.telephone_number,

@@ -3,6 +3,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 import models
 from core.config import settings
@@ -18,42 +19,32 @@ from routers.questions import router as question_router
 from routers.user_answers import router as user_answers_router
 from routers.users import router as users_router
 
-# Define allowed origins for CORS
-origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-
 app = FastAPI()
 
-# Set cookie expiration time
 cookie_expire_time = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Accept", 'token'],
 )
 
-# Add session middleware
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="auth_session",
     max_age=cookie_expire_time,
-    # TODO:  Change to `True` in production with HTTPS
-    https_only=False,
+    https_only=settings.COOKIE_SECURE,
     same_site='lax',
 )
 
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=settings.TRUSTED_HOSTS
+)
 
-# Uncomment and configure TrustedHostMiddleware for additional security in production
-# app.add_middleware(
-#     TrustedHostMiddleware, allowed_hosts=["localhost"]
-# )
 
-# Background task for cleanup OTP
-# Background task for cleanup OTP
 async def schedule_cleanup_otp(interval: int):
     while True:
         await asyncio.sleep(interval)
@@ -70,7 +61,6 @@ async def startup_event():
     loop.create_task(schedule_cleanup_otp(3600))  # 1 Hour
 
 
-# Include routers
 app.include_router(users_router)
 app.include_router(dikaiologitika_router)
 app.include_router(question_router)
@@ -81,5 +71,4 @@ app.include_router(internship_router)
 app.include_router(otp_router)
 app.include_router(company_answers_router)
 
-# Create database tables
 models.Base.metadata.create_all(bind=engine)
