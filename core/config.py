@@ -2,21 +2,21 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Database connection URL, using SQLite for local development.
-    # DATABASE_URL: str = "postgresql://postgres:root@localhost/PlacementsDatabase"
-    DATABASE_URL: str = 'sqlite:///./placements.db'
-
-    # Secret key for encoding and decoding JWT tokens.
-    # Should be a long, random string in production.
-    SECRET_KEY: str = "MikeTest"
-
-    # Algorithm used for JWT encoding and decoding.
+    # General settings
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
-
-    # The duration in minutes after which an access token expires.
     ACCESS_TOKEN_EXPIRES_MINUTES: int = 60
     ACCESS_TOKEN_FOR_COMPANIES_QUESTIONNAIRE_EXPIRES_MINUTES: int = 60
     OTP_CODE_EXPIRES_MINUTES: int = 60
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    ENVIRONMENT: str
+
+    # Environment-specific settings
+    DATABASE_URL: str
+    COOKIE_SECURE: bool = False  # Default to False for development
+    CORS_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    TRUSTED_HOSTS: list = ["localhost", '127.0.0.1']
 
     # Client id / Secret id  of the application used to get access token from ihu
     CLIENT_ID: str
@@ -29,3 +29,10 @@ class Settings(BaseSettings):
 
 # Create an instance of the Settings class to be used throughout the application.
 settings = Settings()
+
+if settings.ENVIRONMENT == "production":
+    settings.DATABASE_URL = "postgresql://username:password@hostname:port/production_db_name"
+    settings.SECRET_KEY = "placements.iee.ihu.gr"
+    settings.COOKIE_SECURE = True
+    settings.CORS_ORIGINS = ["placements.iee.ihu.gr"]
+    settings.TRUSTED_HOSTS = ["placements.iee.ihu.gr", "*.placements.iee.ihu.gr"]
