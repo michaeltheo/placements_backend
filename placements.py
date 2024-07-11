@@ -72,4 +72,3 @@ app.include_router(otp_router)
 app.include_router(company_answers_router)
 
 models.Base.metadata.create_all(bind=engine)
-print(settings)

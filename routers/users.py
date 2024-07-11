@@ -86,6 +86,7 @@ async def read_users_endpoint(
     )
 
 
+# TODO: delete in production
 @router.post("/", response_model=ResponseWrapper, status_code=status.HTTP_200_OK)
 async def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
     """
