@@ -42,13 +42,11 @@ async def auth_redirect_endpoint(request: Request, response: Response):
     Returns:
     - RedirectResponse: Redirects the user to the authentication provider.
     """
-    # TODO: change to production URL
-    redirect_uri = "http://localhost:3000/auth"
+    redirect_uri = settings.REDIRECT_URI
     scope = "profile,ldap,id,cn,announcements"
     client_id = settings.CLIENT_ID
     state = secrets.token_hex(16)
     request.session['oauth_state'] = state  # Store in session
-    print(f"Session OAuth State: {request.session['oauth_state']}")
 
     params = {
         "client_id": client_id,

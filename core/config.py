@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False  # Default to False for development
     CORS_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
     TRUSTED_HOSTS: list = ["localhost", '127.0.0.1']
+    REDIRECT_URI: str = 'http://localhost:3000/auth'
 
     # Client id / Secret id  of the application used to get access token from ihu
     CLIENT_ID: str
@@ -36,3 +37,4 @@ if settings.ENVIRONMENT == "production":
     settings.COOKIE_SECURE = True
     settings.CORS_ORIGINS = ["placements.iee.ihu.gr"]
     settings.TRUSTED_HOSTS = ["placements.iee.ihu.gr", "*.placements.iee.ihu.gr"]
+    settings.REDIRECT_URI = 'http://placements.iee.ihu.gr/auth'
