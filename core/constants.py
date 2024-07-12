@@ -56,7 +56,11 @@ INTERNSHIP_PROGRAM_REQUIREMENTS = {
         {"type": DikaiologitikaType.BebaiosiPraktikisApoGramateia.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.BebaiosiPraktikisApoGramateia),
          "submission_time": SubmissionTime.START.value},
-
+        {
+            "type": DikaiologitikaType.AnagnorisiErgasias.value,
+            "description": DikaiologitikaType.get_description(DikaiologitikaType.AnagnorisiErgasias),
+            "submission_time": SubmissionTime.START.value
+        },
         {"type": DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis),
          "submission_time": SubmissionTime.END.value},

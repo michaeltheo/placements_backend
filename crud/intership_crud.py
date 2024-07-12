@@ -206,7 +206,6 @@ def get_all_internships(
     for internship in internships:
         user = get_user_by_id(db, internship.user_id)
         company = get_company(db, internship.company_id)
-        print(company)
         internship_reads.append(
             InternshipAllRead(
                 id=internship.id,
