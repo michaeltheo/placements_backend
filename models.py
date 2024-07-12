@@ -61,6 +61,7 @@ class DikaiologitikaType(Enum):
     YpeuthiniDilosiProsopikonDedomenon = "YpeuthiniDilosiProsopikonDedomenon"
     DilosiMoriodotisi = "DilosiMoriodotisi"
     YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
+    AnagnorisiErgasias = "AnagnorisiErgasias"
 
     @staticmethod
     def get_description(type_member):
@@ -76,6 +77,7 @@ class DikaiologitikaType(Enum):
             DikaiologitikaType.YpeuthiniDilosiProsopikonDedomenon: "Υπεύθυνη Δήλωση Προσωπικών Δεδομένων",
             DikaiologitikaType.DilosiMoriodotisi: "Δήλωση Μοριοδότησης",
             DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Εργοδότη",
+            DikaiologitikaType.AnagnorisiErgasias: "Αναγνώριση Εργασίας"
         }
         return descriptions.get(type_member, "Unknown Type")
 
