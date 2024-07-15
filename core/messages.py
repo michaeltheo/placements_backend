@@ -68,5 +68,7 @@ class Messages:
     USER_RETRIEVED_SUCCESS = "Ο χρήστης ανακτήθηκε με επιτυχία."
     USER_PROMOTED_TO_ADMIN = "Ο χρήστης: {user_name} προήχθη σε διαχειριστή."
     USER_DEMOTED_TO_STUDENT = "Ο χρήστης: {user_name} υποβαθμίστηκε σε φοιτητή."
+    USER_PROFILE_UPDATE_SUCCESSFULLY = 'Το προφίλ ενημερώθηκε με επιτυχία.'
+    USER_WITH_SAME_AM_EXISTS = 'Υπάρχει ήδη χρήστης με το υπάρχων ΑΜ.'
     INVALID_ROLE = "Μη έγκυρος ρόλος."
     INVALID_DEPARTMENT = "Μη έγκυρο τμήμα."
