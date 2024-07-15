@@ -1,4 +1,6 @@
 import os
+import zipfile
+from tempfile import NamedTemporaryFile
 from typing import List, Optional, Dict
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
@@ -300,3 +302,52 @@ async def delete_file_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
 
     return Message(detail=Messages.FILE_DELETED_SUCCESS)
+
+
+@router.get("/user/{user_id}/download-zip", status_code=status.HTTP_200_OK)
+async def download_user_files_as_zip(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user)
+):
+    """
+    Endpoint to download all files for a user as a ZIP file.
+
+    Parameters:
+    - user_id (int): The ID of the user whose files are to be downloaded.
+    - db (Session): The database session.
+    - current_user (Users): The current authenticated user.
+
+    Returns:
+    - FileResponse: The ZIP file containing all user's documents.
+    """
+    # Check if the current user is the owner of the file or an admin
+    if user_id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=Messages.UNAUTHORIZED_USER)
+
+    # Get the user's files
+    files = get_files_by_user_id(db, user_id=user_id)
+    if not files:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
+
+    # Create a list of file paths
+    file_paths = [file.file_path for file in files]
+
+    # Create a temporary ZIP file
+    with NamedTemporaryFile(delete=False, suffix=".zip") as temp_zip:
+        zip_filename = temp_zip.name
+
+    # Create the ZIP file
+    create_zip_file(file_paths, zip_filename)
+
+    return FileResponse(path=zip_filename, filename=f"user_{user_id}_files.zip", media_type='application/zip')
+
+
+# Helper function to create the ZIP file
+def create_zip_file(file_paths: List[str], zip_filename: str) -> str:
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        for file_path in file_paths:
+            arcname = os.path.basename(file_path)
+            zipf.write(file_path, arcname)
+    return zip_filename
