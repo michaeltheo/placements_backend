@@ -28,7 +28,7 @@ class Department(str, Enum):
     - IHU_IEE: Represents the Department of Computer and Electronic Systems Engineering at the International Hellenic University.
     """
     IT_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
-    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΗΛΕΚΤΡΟΝΙΚΗΣ'
     IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
@@ -104,3 +104,17 @@ class UserLoginResponse(BaseModel):
     """
     user: UserCreateResponse = Field(..., description="User details.")
     tokens: dict = Field(..., description="Tokens including placement, IHU access, and IHU refresh.")
+
+
+class UserUpdate(BaseModel):
+    """
+    Schema for updating user profiles. This model excludes the 'role' field
+    to ensure the role cannot be changed via this update.
+    """
+    first_name: Optional[str] = Field(None, description="The user's first name.")
+    last_name: Optional[str] = Field(None, description="The user's last name.")
+    AM: Optional[str] = Field(None, description="Academic number or unique identifier for the user.")
+    department: Optional[Department] = Field(None, description="The department of the user.")
+    telephone_number: Optional[str] = Field(None, description="The user's telephone number.")
+    email: Optional[str] = Field(None, description="The user's email address.")
+    reg_year: Optional[str] = Field(None, description="The user's registration year.")

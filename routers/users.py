@@ -12,7 +12,7 @@ from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin
 from dependencies import get_db, get_current_user
 from models import Users, UserRole, Department
 from schemas.response import ResponseWrapper, Message, ResponseTotalItems
-from schemas.user_schema import User, UserCreate
+from schemas.user_schema import User, UserCreate, UserUpdate
 
 router = APIRouter(
     prefix='/user',
@@ -256,3 +256,45 @@ async def set_user_as_student(user_id: int, db: Session = Depends(get_db),
     db.refresh(db_user)
     user_name = f"{db_user.first_name} {db_user.last_name}"
     return Message(detail=Messages.USER_DEMOTED_TO_STUDENT.format(user_name=user_name))
+
+
+@router.put("/update-profile/{user_id}", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)
+async def update_user_profile(
+        user_id: int,
+        user_update: UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user)):
+    """
+    Update user profile fields except for the role.
+
+    Parameters:
+    - user_id (int): The ID of the user to update.
+    - user_update (UserUpdate): The new data for the user.
+    - db (Session): The database session.
+    - current_user (Users): The current authenticated user.
+
+    Returns:
+    - ResponseWrapper[User]: The updated user information wrapped in a standard response structure.
+    """
+    if user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
+
+    db_user = get_user_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.USER_NOT_FOUND)
+
+    # Check if the provided AM is already in use by another user
+    if user_update.AM and user_update.AM != db_user.AM:
+        existing_user = get_user_by_AM(db, user_update.AM)
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=Messages.USER_WITH_SAME_AM_EXISTS)
+    # Update user fields
+    update_data = user_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+
+    db.commit()
+    db.refresh(db_user)
+
+    return ResponseWrapper(data=db_user, message=Message(detail=Messages.USER_PROFILE_UPDATE_SUCCESSFULLY))

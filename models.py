@@ -29,7 +29,7 @@ class QuestionnaireType(str, Enum):
 # Define departments
 class Department(str, Enum):
     IT_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ'
-    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΗΛΕΚΤΡΟΝΙΚΗΣ'
+    EL_TEITHE = 'ΠΡΩΗΝ ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΗΛΕΚΤΡΟΝΙΚΗΣ'
     IHU_IEE = 'ΤΜΗΜΑ ΜΗΧΑΝΙΚΩΝ ΠΛΗΡΟΦΟΡΙΚΗΣ ΚΑΙ ΗΛΕΚΤΡΟΝΙΚΩΝ ΣΥΣΤΗΜΑΤΩΝ'
 
 
