@@ -4,13 +4,14 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
+from core.constants import INTERNSHIP_PROGRAM_REQUIREMENTS
 from core.messages import Messages
 from crud.company_answer_crud import delete_company_answers
 from crud.company_crud import get_company
 from crud.user_answer_crud import delete_user_answers
 from crud.user_crud import get_user_by_id
 from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies, Dikaiologitika, \
-    Department
+    Department, SubmissionTime
 from schemas.internship_schema import InternshipCreate, InternshipAllRead
 
 
@@ -69,7 +70,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
             department=internship_data.department,
             start_date=internship_data.start_date,
             end_date=internship_data.end_date,
-            status=InternshipStatus.PENDING_REVIEW
+            status=InternshipStatus.SUBMIT_START_FILES
         )
         db.add(new_internship)
         db.commit()
@@ -77,7 +78,8 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         return new_internship
 
 
-def update_internship_status(db: Session, internship_id: int, internship_status: InternshipStatus) -> InternshipModel:
+def update_internship_status(db: Session, internship_id: int, internship_status: InternshipStatus,
+                             isCurrentUserAdmin: bool) -> InternshipModel:
     """
     Update the status of an internship.
 
@@ -85,17 +87,42 @@ def update_internship_status(db: Session, internship_id: int, internship_status:
     - db (Session): Database session.
     - internship_id (int): The ID of the internship.
     - internship_status (InternshipStatus): The new status of the internship.
+    - isCurrentUserAdmin (bool): Boolean indicating if the current user is an admin.
 
     Returns:
     - InternshipModel: The updated internship.
 
     Raises:
-    - HTTPException: If the internship is not found.
+    - HTTPException: If the internship is not found or required files are not submitted.
     """
+    # Retrieve the internship by its ID
     internship = get_internship_by_id(db, internship_id)
     if not internship:
+        # Raise 404 error if internship not found
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
 
+    # Check if all required files are submitted for certain status updates
+    if not isCurrentUserAdmin:
+        if internship_status == InternshipStatus.PENDING_REVIEW_START:
+            all_submitted, submitted_files_count, required_files_count = check_required_files_submitted(
+                db, internship.user_id, internship.program, SubmissionTime.START)
+            if not all_submitted:
+                # Raise 400 error if required start files are not submitted
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Δεν υποβλήθηκαν τα απαιτούμενα δικαιολογητικά έναρξης {submitted_files_count}/{required_files_count}."
+                )
+        elif internship_status == InternshipStatus.PENDING_REVIEW_END:
+            all_submitted, submitted_files_count, required_files_count = check_required_files_submitted(
+                db, internship.user_id, internship.program, SubmissionTime.END)
+            if not all_submitted:
+                # Raise 400 error if required end files are not submitted
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Δεν υποβλήθηκαν τα απαιτούμενα δικαιολογητικά λήξης. {submitted_files_count}/{required_files_count}."
+                )
+
+    # Update the internship status
     internship.status = internship_status
     db.commit()
     db.refresh(internship)
@@ -224,3 +251,55 @@ def get_all_internships(
         )
 
     return internship_reads, total_items
+
+
+def get_required_files(program: InternshipProgram, submission_time: SubmissionTime) -> List[str]:
+    """
+    Get the required files for a given internship program and submission time.
+
+    Parameters:
+    - program (InternshipProgram): The internship program.
+    - submission_time (SubmissionTime): The submission time (START or END).
+
+    Returns:
+    - List[str]: A list of required file types.
+    """
+    # Retrieve the requirements based on the internship program
+    requirements = INTERNSHIP_PROGRAM_REQUIREMENTS.get(program, [])
+    # Filter the requirements based on the submission time (START or END)
+    return [req['type'] for req in requirements if req['submission_time'] == submission_time.value]
+
+
+def check_required_files_submitted(db: Session, user_id: int, program: InternshipProgram,
+                                   submission_time: SubmissionTime) -> Tuple[bool, int, int]:
+    """
+    Check if all required files have been submitted by the user.
+
+    Parameters:
+    - db (Session): Database session.
+    - user_id (int): The ID of the user.
+    - program (InternshipProgram): The internship program.
+    - submission_time (SubmissionTime): The submission time (START or END).
+
+    Returns:
+    - Tuple[bool, int, int]: A tuple containing a boolean indicating if all required files are submitted,
+                             the count of submitted files, and the total required files.
+    """
+    # Get the required files for the program and submission time
+    required_files = get_required_files(program, submission_time)
+    total_required_files = len(required_files)
+    print(required_files, total_required_files)
+
+    # Query the submitted files from the database
+    submitted_files = db.query(Dikaiologitika).filter(
+        Dikaiologitika.user_id == user_id,
+        Dikaiologitika.type.in_(required_files)
+    ).all()
+
+    # Determine the types of files that have been submitted
+    submitted_file_types = {file.type for file in submitted_files}
+    submitted_files_count = len(submitted_file_types)
+
+    # Check if all required files are submitted
+    all_submitted = submitted_files_count == total_required_files
+    return all_submitted, submitted_files_count, total_required_files

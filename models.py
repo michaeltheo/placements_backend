@@ -43,9 +43,12 @@ class InternshipProgram(str, Enum):
 
 # Define internship statuses
 class InternshipStatus(str, Enum):
-    PENDING_REVIEW = "Pending review"
-    ACTIVE = "Active"
-    ENDED = "Ended"
+    SUBMIT_START_FILES = "Κατάθεση Δικαιολογητικών Έναρξης"
+    SUBMIT_END_FILES = "Κατάθεση Δικαιολογητικών Λήξης"
+    PENDING_REVIEW_START = "Έλεγχος Δικαιολοητικών Έναρξης"
+    PENDING_REVIEW_END = "Έλεγχος Δικαιολοητικών Λήξης"
+    ACTIVE = "Ενεργή Πρακτική Άσκηση"
+    ENDED = "Ολοκληρωμένη Πρακτική Άσκηση"
 
 
 # Define document types with descriptions
@@ -62,6 +65,7 @@ class DikaiologitikaType(Enum):
     DilosiMoriodotisi = "DilosiMoriodotisi"
     YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
     AnagnorisiErgasias = "AnagnorisiErgasias"
+    BebaiosiApasxolisisKaiAsfalisisAskoumenou = "BebaiosiApasxolisisKaiAsfalisisAskoumenou"
 
     @staticmethod
     def get_description(type_member):
@@ -77,7 +81,8 @@ class DikaiologitikaType(Enum):
             DikaiologitikaType.YpeuthiniDilosiProsopikonDedomenon: "Υπεύθυνη Δήλωση Προσωπικών Δεδομένων",
             DikaiologitikaType.DilosiMoriodotisi: "Δήλωση Μοριοδότησης",
             DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Εργοδότη",
-            DikaiologitikaType.AnagnorisiErgasias: "Αναγνώριση Εργασίας"
+            DikaiologitikaType.AnagnorisiErgasias: "Αναγνώριση Εργασίας",
+            DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou: "Βεβαίωση Απασχόλησης και Ασφάλισης Ασκούμενου"
         }
         return descriptions.get(type_member, "Unknown Type")
 
@@ -145,7 +150,7 @@ class Internship(Base):
     program = Column(SQLAlchemyEnum(InternshipProgram), nullable=False)
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
-    status = Column(SQLAlchemyEnum(InternshipStatus), default=InternshipStatus.PENDING_REVIEW, nullable=False)
+    status = Column(SQLAlchemyEnum(InternshipStatus), default=InternshipStatus.SUBMIT_START_FILES, nullable=False)
 
     # Define relationships
     user = relationship("Users", back_populates='internships')

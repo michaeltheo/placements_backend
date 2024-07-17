@@ -5,9 +5,9 @@ class Settings(BaseSettings):
     # General settings
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRES_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRES_MINUTES: int = 360
     ACCESS_TOKEN_FOR_COMPANIES_QUESTIONNAIRE_EXPIRES_MINUTES: int = 60
-    OTP_CODE_EXPIRES_MINUTES: int = 60
+    OTP_CODE_EXPIRES_MINUTES: int = 1440
     CLIENT_ID: str
     CLIENT_SECRET: str
     ENVIRONMENT: str
@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Client id / Secret id  of the application used to get access token from ihu
     CLIENT_ID: str
     CLIENT_SECRET: str
+    TWILIO_ACCOUNT_SID: str
+    TWILIO_AUTH_TOKEN: str
+    TWILIO_PHONE_NUMBER: str
 
     class Config:
         # Path to the .env file from which environment-specific variables can be read.

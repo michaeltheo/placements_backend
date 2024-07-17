@@ -22,6 +22,7 @@ class DikaiologitikaType(str, Enum):
     DilosiMoriodotisi = "DilosiMoriodotisi"
     YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
     AnagnorisiErgasias = "AnagnorisiErgasias"
+    BebaiosiApasxolisisKaiAsfalisisAskoumenou = "BebaiosiApasxolisisKaiAsfalisisAskoumenou"
 
 
 class SubmissionTime(str, Enum):

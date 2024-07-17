@@ -7,8 +7,8 @@ from starlette import status
 from core.messages import Messages
 from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship, delete_internship, \
-    create_or_update_internship, update_internship_status, get_all_internships
-from crud.user_crud import is_admin
+    create_or_update_internship, update_internship_status, get_all_internships, get_internship_by_id
+from crud.user_crud import is_admin, get_user_by_id
 from dependencies import get_db, get_current_user
 from models import Users, InternshipProgram, InternshipStatus, Department
 from schemas.internship_schema import InternshipRead, InternshipCreate, InternshipAllRead, InternshipUpdate
@@ -128,10 +128,37 @@ async def update_internship_status_endpoint(
     """
     Update the details of an internship, including its status. Only accessible by admin users.
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=Messages.UNAUTHORIZED_USER)
+    # Retrieve the internship by its ID
+    internship = get_internship_by_id(db, internship_id)
+    if not internship:
+        # Raise 404 error if internship not found
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
 
+    # Check if the current user is authorized to update the internship
+    if current_user.id != internship.user_id and not is_admin(current_user):
+        # Raise 403 error if the user is not the owner or an admin
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
+
+    # Additional checks for certain status updates
+    if internship_status in {InternshipStatus.ACTIVE, InternshipStatus.ENDED}:
+        if not is_admin(current_user):
+            # Only admins can change status to ACTIVE or ENDED
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
+
+    # Update the internship status
     updated_internship = update_internship_status(db=db, internship_id=internship_id,
-                                                  internship_status=internship_status)
+                                                  internship_status=internship_status,
+                                                  isCurrentUserAdmin=is_admin(current_user))
+    get_user = get_user_by_id(db, internship.user_id)
+    # if get_user and get_user.telephone_number and is_admin(current_user):
+    #     if len(get_user.telephone_number) > 5:  # Ensure the telephone number length is more than 5
+    #         formatted_phone = format_phone_number(get_user.telephone_number)
+    #         print(formatted_phone)
+    #         message = f"To Γραφείο Πρακτικής άλλαξε την κατάσταση της πρακτικής σου σε {internship_status.value}."
+    #         try:
+    #             send_sms(formatted_phone, message)
+    #         except Exception as e:
+    #             # Handle exceptions that might occur during SMS sending
+    #             logger.error(f"Failed to send SMS to {formatted_phone}: {e}")
+    # Return the updated internship details
     return ResponseWrapper(data=updated_internship, message=Message(detail=Messages.INTERNSHIP_STATUS_UPDATED))
