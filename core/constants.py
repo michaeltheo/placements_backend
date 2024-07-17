@@ -17,6 +17,11 @@ INTERNSHIP_PROGRAM_REQUIREMENTS = {
         {"type": DikaiologitikaType.BebaiosiEnsimonApoEfka.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.BebaiosiEnsimonApoEfka),
          "submission_time": SubmissionTime.END.value},
+        {
+            "type": DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou.value,
+            "description": DikaiologitikaType.get_description(
+                DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou),
+            "submission_time": SubmissionTime.START.value},
 
         {"type": DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis),
@@ -36,6 +41,11 @@ INTERNSHIP_PROGRAM_REQUIREMENTS = {
         {"type": DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi),
          "submission_time": SubmissionTime.START.value},
+        {
+            "type": DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou.value,
+            "description": DikaiologitikaType.get_description(
+                DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou),
+            "submission_time": SubmissionTime.START.value},
 
         {"type": DikaiologitikaType.DilosiAtomikonStoixeion.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.DilosiAtomikonStoixeion),
@@ -60,7 +70,12 @@ INTERNSHIP_PROGRAM_REQUIREMENTS = {
             "type": DikaiologitikaType.AnagnorisiErgasias.value,
             "description": DikaiologitikaType.get_description(DikaiologitikaType.AnagnorisiErgasias),
             "submission_time": SubmissionTime.START.value
-        },
+        }, {
+            "type": DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou.value,
+            "description": DikaiologitikaType.get_description(
+                DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou),
+            "submission_time": SubmissionTime.START.value},
+
         {"type": DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis),
          "submission_time": SubmissionTime.END.value},
@@ -78,6 +93,11 @@ INTERNSHIP_PROGRAM_REQUIREMENTS = {
         {"type": DikaiologitikaType.YpeuthiniDilosiErgodoti.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.YpeuthiniDilosiErgodoti),
          "submission_time": SubmissionTime.START.value},
+        {
+            "type": DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou.value,
+            "description": DikaiologitikaType.get_description(
+                DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou),
+            "submission_time": SubmissionTime.START.value},
 
         {"type": DikaiologitikaType.AntigraphoE3_5.value,
          "description": DikaiologitikaType.get_description(DikaiologitikaType.AntigraphoE3_5),
