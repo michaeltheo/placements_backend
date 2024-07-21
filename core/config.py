@@ -35,9 +35,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if settings.ENVIRONMENT == "production":
-    settings.DATABASE_URL = "postgresql://username:password@hostname:port/production_db_name"
-    settings.SECRET_KEY = "placements.iee.ihu.gr"
     settings.COOKIE_SECURE = True
     settings.CORS_ORIGINS = ["placements.iee.ihu.gr"]
     settings.TRUSTED_HOSTS = ["placements.iee.ihu.gr", "*.placements.iee.ihu.gr"]
-    settings.REDIRECT_URI = 'http://placements.iee.ihu.gr/auth'
+    settings.REDIRECT_URI = 'https://placements.iee.ihu.gr/auth'

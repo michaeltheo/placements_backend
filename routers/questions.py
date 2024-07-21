@@ -144,7 +144,7 @@ async def admin_delete_question_endpoint(
     return Message(detail=Messages.QUESTION_DELETED_SUCCESS)
 
 
-@router.get('/stats/answers', response_model=ResponseWrapper[List[QuestionStatistics]], status_code=status.HTTP_200_OK)
+@router.get('/stats/answers/', response_model=ResponseWrapper[List[QuestionStatistics]], status_code=status.HTTP_200_OK)
 async def admin_get_answers_statistics_endpoint(
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user),

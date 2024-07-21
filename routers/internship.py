@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 
-@router.get("/all", response_model=ResponseTotalItems[List[InternshipAllRead]], status_code=status.HTTP_200_OK)
+@router.get("/all/", response_model=ResponseTotalItems[List[InternshipAllRead]], status_code=status.HTTP_200_OK)
 async def get_all_internships_endpoint(
         db: Session = Depends(get_db),
         current_user: Users = Depends(get_current_user),

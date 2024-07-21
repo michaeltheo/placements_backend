@@ -1,10 +1,10 @@
 import asyncio
 
-from fastapi import FastAPI
+from fastapi import FastAPI,APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-
+from starlette.requests import Request
 import models
 from core.config import settings
 from crud.otp_crud import cleanup_expired_otps
@@ -22,6 +22,9 @@ from routers.users import router as users_router
 app = FastAPI()
 
 cookie_expire_time = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
+
+top_router = APIRouter(prefix="/api")
+app.include_router(top_router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -23,7 +23,7 @@ router = APIRouter(prefix='/dikaiologitika',
                    tags=['dikaiologitika'])
 
 
-@router.get("/types", response_model=ResponseWrapper[Dict[str, List[Dict[str, str]]]], status_code=status.HTTP_200_OK)
+@router.get("/types/", response_model=ResponseWrapper[Dict[str, List[Dict[str, str]]]], status_code=status.HTTP_200_OK)
 async def get_dikaiologitika_types_endpoint():
     """
     Provides a list of all available dikaiologitika types required for each InternshipProgram. This endpoint
