@@ -17,6 +17,7 @@ from core.config import settings
 from core.messages import Messages
 from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, split_full_name, determine_department
 from dependencies import get_db
+from models import Department
 from schemas.response import Message, ResponseWrapper
 from schemas.user_schema import UserCreateResponse, UserLoginResponse
 
@@ -92,9 +93,16 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     profile_data = await fetch_profile(token)
     if profile_data is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.FETCH_PROFILE_ERROR)
+    # Check if the user is staff
+    is_staff = profile_data.get('eduPersonAffiliation') == 'staff'
 
     # Retrieve academic number (AM) from profile data and check if the user exists in the database
-    am = profile_data.get('am')
+    if is_staff:
+        am = profile_data.get('uid')
+        department = Department.IHU_IEE
+    else:
+        am = profile_data.get('am')
+        department = determine_department(am)
     db_user = get_user_by_AM(db, am)
     if db_user:
         # Determine if the user is an admin
@@ -128,14 +136,15 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         # Split full name into first name and last name
         first_name, last_name = split_full_name(profile_data.get('cn;lang-el'))
         # Find students department
-        department = determine_department(am)
+        if not is_staff:
+            department = determine_department(am)
         # Create new user data from profile data
         new_user_data = {
             'first_name': first_name,
             'last_name': last_name,
             'AM': am,
             'department': department,
-            'reg_year': profile_data.get('regyear'),
+            'reg_year': profile_data.get('regyear') if not is_staff else None,
             'telephone_number': profile_data.get('telephoneNumber'),
             'email': profile_data.get('mail')
         }
