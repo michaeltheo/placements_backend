@@ -1,14 +1,15 @@
 import asyncio
 
-from fastapi import FastAPI,APIRouter
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.requests import Request
+
 import models
 from core.config import settings
 from crud.otp_crud import cleanup_expired_otps
 from database import engine, SessionLocal
+from routers.announcements import router as announcement_router
 from routers.auth import router as auth_router
 from routers.companies import router as companies_router
 from routers.company_answers import router as company_answers_router
@@ -73,5 +74,6 @@ app.include_router(companies_router)
 app.include_router(internship_router)
 app.include_router(otp_router)
 app.include_router(company_answers_router)
+app.include_router(announcement_router)
 
 models.Base.metadata.create_all(bind=engine)
