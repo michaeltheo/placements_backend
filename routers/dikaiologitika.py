@@ -272,7 +272,7 @@ async def download_file_endpoint(file_id: int, db: Session = Depends(get_db),
     return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/octet-stream')
 
 
-@router.get("/{file_id}/", response_model=Message)
+@router.get("/{file_id}", response_model=Message)
 async def delete_file_endpoint(
         file_id: int,
         db: Session = Depends(get_db),

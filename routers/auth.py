@@ -186,7 +186,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     return ResponseWrapper(data=login_response, message=Message(detail=Messages.SUCCESSFULLY_LOGIN))
 
 
-@router.get("/verify-token", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
+@router.get("/verify-token/", response_model=ResponseWrapper[UserCreateResponse], status_code=status.HTTP_200_OK)
 def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_access_token"),
                           db: Session = Depends(get_db)):
     """
