@@ -86,6 +86,60 @@ async def read_users_endpoint(
     )
 
 
+@router.post("/", response_model=ResponseWrapper, status_code=status.HTTP_200_OK)
+async def create_return_user_endpoint(response: Response, user_data: UserCreate, db: Session = Depends(get_db)):
+    """
+       Endpoint to create a new user or return an existing one based on the Academic Number (AM).
+
+       If a user with the given AM already exists, this endpoint will not create a new user but instead
+       return the existing user's details along with a new access token.
+
+       For new users, it creates the user in the database, generates an access token,
+       and returns the user's details with the access token set in an HTTP-only cookie.
+
+       Parameters:
+       - response (Response): The FastAPI response object, used to set cookies.
+       - user_data (UserCreate): The schema containing the data for the user to create.
+       - db (Session): The database session dependency.
+
+       Returns:
+       - ResponseWrapper[UserCreateResponse]: A wrapped response containing the user's details and a success message.
+       """
+    if settings.ENVIRONMENT == 'production':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.NOT_AVAILABLE_ENDPOINT)
+    # Check if a user with the provided AM exists in the database.
+    db_user = get_user_by_AM(db, user_data.AM)
+    if db_user:
+        # If user exists, determine if they are an admin and generate a new access token.
+        admin_status = is_admin(db_user)
+        access_token = create_access_token(data={"sub": str(db_user.id)})
+        response.set_cookie(
+            key="placements_access_token",
+            value=access_token,
+            httponly=True,
+            expires=expires_time,
+            max_age=expires_in_seconds,
+            secure=True,
+            samesite="lax",  # Sets the SameSite attribute to Lax
+            # TODO: Change 'path' to match the domain when deployed
+        )
+
+    else:
+        # If no existing user, convert the Pydantic model to a dict and exclude unset fields for user creation.
+        user_dict = user_data.dict(exclude_unset=True)
+        print(user_dict)
+        # Create a new user in the database.
+        new_user = create_user(db=db, user=user_dict)
+        # Determine if the new user is an admin and generate a new access token.
+        admin_status = is_admin(new_user)
+        access_token = create_access_token(data={"sub": str(new_user.id)})
+        response.set_cookie(key="placements_access_token", value=access_token, httponly=True, expires=expires_time,
+                            samesite="lax", secure=True
+                            )
+
+    return ResponseWrapper(data={'access_token': access_token}, message=Message(detail="User processed successfully"))
+
+
 @router.get("/{user_id}/", response_model=ResponseWrapper[User], status_code=status.HTTP_200_OK)
 async def get_user_by_id_endpoint(user_id: int, db: Session = Depends(get_db),
                                   current_user: Users = Depends(get_current_user)):
