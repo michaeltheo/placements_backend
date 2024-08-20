@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Environment-specific settings
     DATABASE_URL: str
     COOKIE_SECURE: bool = False  # Default to False for development
+    HTTP_ONLY: bool = False  # Default to False for development
     CORS_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
     TRUSTED_HOSTS: list = ["localhost", '127.0.0.1']
     REDIRECT_URI: str = 'http://localhost:3000/auth'
@@ -36,6 +37,7 @@ settings = Settings()
 
 if settings.ENVIRONMENT == "production":
     settings.COOKIE_SECURE = True
+    settings.HTTP_ONLY = True
     settings.CORS_ORIGINS = ["placements.iee.ihu.gr"]
     settings.TRUSTED_HOSTS = ["placements.iee.ihu.gr", "*.placements.iee.ihu.gr"]
     settings.REDIRECT_URI = 'https://placements.iee.ihu.gr/auth'

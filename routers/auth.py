@@ -113,9 +113,9 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         response.set_cookie(
             key="placements_access_token",
             value=access_token,
-            httponly=False,
+            httponly=settings.HTTP_ONLY,
             expires=expires_time,
-            secure=False,
+            secure=settings.COOKIE_SECURE,
             max_age=expires_in_seconds,
             samesite="lax",
         )
@@ -157,9 +157,9 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         response.set_cookie(
             key="placements_access_token",
             value=access_token,
-            httponly=False,
+            httponly=settings.HTTP_ONLY,
             expires=expires_time,
-            secure=False,
+            secure=settings.COOKIE_SECURE,
             max_age=expires_in_seconds,
             samesite="lax",
         )
