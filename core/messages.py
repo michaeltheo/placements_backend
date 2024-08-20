@@ -72,3 +72,4 @@ class Messages:
     USER_WITH_SAME_AM_EXISTS = 'Υπάρχει ήδη χρήστης με το υπάρχων ΑΜ.'
     INVALID_ROLE = "Μη έγκυρος ρόλος."
     INVALID_DEPARTMENT = "Μη έγκυρο τμήμα."
+    NOT_AVAILABLE_ENDPOINT = "Αυτό το endpoint δεν είναι διαθέσιμο στο prodcution !!"

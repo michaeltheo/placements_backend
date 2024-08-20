@@ -23,6 +23,24 @@ def cleanup_expired_otps(db: Session):
     db.commit()
 
 
+def generate_unique_otp(db: Session) -> str:
+    """
+    Generate a unique 6-digit OTP that does not already exist in the database.
+
+    Parameters:
+    - db (Session): The database session.
+
+    Returns:
+    - str: A unique 6-digit OTP.
+    """
+    while True:
+        otp = ''.join(random.choices(string.digits, k=6))
+        # Check if the generated OTP already exists in the database
+        existing_otp = db.query(OTP).filter(OTP.otp == otp).first()
+        if not existing_otp:
+            return otp
+
+
 def generate_otp(db: Session, user_id: int) -> OTP:
     """
     Generate a new OTP for the given user. If an existing OTP is still valid, return it.
@@ -39,9 +57,9 @@ def generate_otp(db: Session, user_id: int) -> OTP:
     if existing_otp and existing_otp.expiry >= datetime.now():
         return existing_otp
 
-    # Generate a new OTP
-    otp = ''.join(random.choices(string.digits, k=6))
-    # OTP IS VALID FOR 1 hour
+    # Generate a unique OTP
+    otp = generate_unique_otp(db)
+    # 1 Day
     expiry = datetime.now() + timedelta(minutes=settings.OTP_CODE_EXPIRES_MINUTES)
 
     # Delete any existing OTPs for the user
