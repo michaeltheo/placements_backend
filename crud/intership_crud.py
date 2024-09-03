@@ -227,7 +227,11 @@ def get_all_internships(
 
     total_items = query.count()
     offset = (page - 1) * items_per_page
-    internships = query.offset(offset).limit(items_per_page).all()
+
+    if items_per_page == -1:
+        internships = query.offset(offset).all()
+    else:
+        internships = query.offset(offset).limit(items_per_page).all()
 
     internship_reads = []
     for internship in internships:
