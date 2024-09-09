@@ -16,7 +16,7 @@ class InternshipProgram(str, Enum):
     - ESPA: Represents the ESPA program.
     - EMPLOYER_FINANCED: Represents internships exclusively financed by the employer.
     """
-    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΧΩΡΙΣ ΕΣΠΑ ( ΙΔΙΩΤΙΚΟΣ 'Η ΔΗΜΟΣΙΟΣ ΤΟΜΕΑΣ)"
+    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΧΩΡΙΣ ΕΣΠΑ (ΙΔΙΩΤΙΚΟΣ 'Η ΔΗΜΟΣΙΟΣ ΤΟΜΕΑΣ)"
     ESPA = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΕΣΠΑ"
     TEITHE_JOB_RECOGNITION = "ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ ΩΣ ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΓΙΑ ΕΡΓΑΖΟΜΕΝΟΥΣ ΦΟΙΤΗΤΕΣ"
     EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΚΑΛΥΨΗ ΤΗΣ ΑΜΟΙΒΗΣ ΤΟΥ ΦΟΙΤΗΤΗ ΑΠΟ ΤΟΝ ΦΟΡΕΑ"
