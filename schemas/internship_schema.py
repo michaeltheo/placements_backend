@@ -16,10 +16,10 @@ class InternshipProgram(str, Enum):
     - ESPA: Represents the ESPA program.
     - EMPLOYER_FINANCED: Represents internships exclusively financed by the employer.
     """
-    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΟΑΕΔ"
+    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΧΩΡΙΣ ΕΣΠΑ ( ΙΔΙΩΤΙΚΟΣ 'Η ΔΗΜΟΣΙΟΣ ΤΟΜΕΑΣ)"
     ESPA = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΕΣΠΑ"
-    TEITHE_JOB_RECOGNITION = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
-    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
+    TEITHE_JOB_RECOGNITION = "ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ ΩΣ ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΓΙΑ ΕΡΓΑΖΟΜΕΝΟΥΣ ΦΟΙΤΗΤΕΣ"
+    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΚΑΛΥΨΗ ΤΗΣ ΑΜΟΙΒΗΣ ΤΟΥ ΦΟΙΤΗΤΗ ΑΠΟ ΤΟΝ ΦΟΡΕΑ"
 
 
 class InternshipStatus(str, Enum):
@@ -42,22 +42,26 @@ class InternshipStatus(str, Enum):
     ENDED = "Ολοκληρωμένη Πρακτική Άσκηση"
 
 
-
 class InternshipBase(BaseModel):
     """
-    Base model for internship, defining common attributes shared across different internship models.
+    Base model for internships, defining common attributes shared across different internship models.
+    This model captures key details about an internship, including the associated company, the specific program,
+    and the supervisory and timing details of the internship period.
 
     Attributes:
-    - company_id (Optional[int]): The ID of the company associated with the internship.
-    - program (InternshipProgram): The internship program.
-    - start_date (Optional[datetime]): The start date of the internship.
-    - end_date (Optional[datetime]): The end date of the internship.
+    - company_id (Optional[int]): The ID of the company associated with the internship. Can be None if not yet assigned.
+    - program (InternshipProgram): The specific internship program under which the internship is registered.
+    - department (Department): The department within the educational institution or company where the internship takes place.
+    - start_date (Optional[datetime]): The start date of the internship, can be None if dates are not finalized.
+    - end_date (Optional[datetime]): The expected end date of the internship, should be later than the start date.
+    - supervisor (Optional[str]): The name of the supervisor overseeing the internship, can be None if not applicable.
     """
     company_id: Optional[int] = None
     program: InternshipProgram
     department: Department
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    supervisor: Optional[str] = None
 
     @validator('end_date', always=True)
     def check_dates(cls, v, values, **kwargs):
@@ -87,6 +91,7 @@ class InternshipUpdate(InternshipBase):
     - status (Optional[InternshipStatus]): The status of the internship.
     """
     status: Optional[InternshipStatus] = None
+    supervisor: Optional[str] = None
 
 
 class InternshipRead(InternshipBase):
@@ -122,6 +127,7 @@ class InternshipAllRead(BaseModel):
     - user_last_name (str): The last name of the user.
     - user_am (str): The academic number or unique identifier of the user.
     - company_name (Optional[str]): The name of the company associated with the internship.
+     - supervisor (Optional[str]): The name of the supervisor overseeing the internship.
     """
     id: int
     program: InternshipProgram
@@ -129,6 +135,7 @@ class InternshipAllRead(BaseModel):
     start_date: Optional[datetime]
     end_date: Optional[datetime]
     status: InternshipStatus
+    supervisor: Optional[str]
     user_id: int
     user_first_name: str
     user_last_name: str

@@ -1,13 +1,18 @@
+from io import BytesIO
 from typing import List, Optional, Union
+from urllib.parse import quote
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from starlette import status
+from starlette.responses import StreamingResponse
 
 from core.messages import Messages
 from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship, delete_internship, \
-    create_or_update_internship, update_internship_status, get_all_internships, get_internship_by_id
+    create_or_update_internship, update_internship_status, get_all_internships, get_internship_by_id, \
+    fetch_active_internships_with_details, fetch_supervisors
 from crud.user_crud import is_admin, get_user_by_id
 from dependencies import get_db, get_current_user
 from models import Users, InternshipProgram, InternshipStatus, Department
@@ -83,6 +88,7 @@ async def get_internship_by_user_endpoint(user_id: int, db: Session = Depends(ge
         department=internship.department,
         program=internship.program,
         start_date=internship.start_date,
+        supervisor=internship.supervisor,
         end_date=internship.end_date,
         status=internship.status,
         company_name=company.name if company else None
@@ -162,3 +168,85 @@ async def update_internship_status_endpoint(
     #             logger.error(f"Failed to send SMS to {formatted_phone}: {e}")
     # Return the updated internship details
     return ResponseWrapper(data=updated_internship, message=Message(detail=Messages.INTERNSHIP_STATUS_UPDATED))
+
+
+@router.get("/export/active_internships/")
+async def export_internships_to_excel(
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user),
+        department: Department = Query(None, description="Filter by department"),
+        program: InternshipProgram = Query(None, description="Filter by internship program")
+):
+    """
+    Exports details of active internships to an Excel file, filtered by department and program.
+    This endpoint is accessible only to users with admin privileges.
+
+    Parameters:
+    - db (Session): Database session dependency injection.
+    - current_user (Users): The current user performing the operation, must be an admin.
+    - department (Department, optional): Filter internships by a specific department.
+    - program (InternshipProgram, optional): Filter internships by a specific internship program.
+
+    Returns:
+    - StreamingResponse: An Excel file containing details of active internships filtered by the specified criteria.
+      The file includes data such as the intern's name, academic number, email, phone number,
+      internship dates, supervisor, and associated company details including company name,
+      tax identification number, email, phone number, and city.
+
+    Raises:
+    - HTTPException: If the current user is not authorized as an admin.
+    """
+    if not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=Messages.UNAUTHORIZED_USER)
+
+    # Data retrieval
+    internships = fetch_active_internships_with_details(db, program, department)
+
+    # Prepare Excel data
+    data = [{
+        "ΟΝΟΜΑ": getattr(intern.user, 'first_name', None),
+        "ΕΠΙΘΕΤΟ": getattr(intern.user, 'last_name', None),
+        "ΑΡΙΘΜΟΣ ΜΗΤΡΩΟΥ": getattr(intern.user, 'AM', None),
+        "EMAIL": getattr(intern.user, 'email', None),
+        "ΤΗΛΕΦΩΝΟ": getattr(intern.user, 'telephone_number', None),
+        "ΗΜΕΡΟΜΗΝΙΑ ΕΝΑΡΞΗΣ ΠΡΑΚΤΙΚΗΣ": intern.start_date.strftime("%Y-%m-%d") if intern.start_date else None,
+        "ΗΜΕΡΟΜΗΝΙΑ ΛΗΞΗΣ ΠΡΑΚΤΙΚΗΣ": intern.end_date.strftime("%Y-%m-%d") if intern.end_date else None,
+        "ΕΠΟΠΤΗΣ": intern.supervisor,
+        "ΟΝΟΜΑ ΕΤΑΙΡΕΙΑΣ": getattr(intern.company, 'name', None) if intern.company else None,
+        "ΑΦΜ ΕΤΑΙΡΕΙΑΣ": getattr(intern.company, 'AFM', None) if intern.company else None,
+        "EMAIL ΕΤΑΙΡΕΙΑΣ": getattr(intern.company, 'email', None) if intern.company else None,
+        "ΤΗΛΕΦΩΝΟ ΕΤΑΙΡΕΙΑΣ": getattr(intern.company, 'telephone', None) if intern.company else None,
+        "ΠΟΛΗ ΕΤΑΙΡΕΙΑΣ": getattr(intern.company, 'city', None) if intern.company else None,
+    } for intern in internships]
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df = pd.DataFrame(data)
+        df.to_excel(writer, index=False, sheet_name='Ενεργές Πρακτικές')
+    output.seek(0)
+
+    # Safe encoding for filename
+    department_str = quote(department.value) if department else "All"
+    program_str = quote(program.value) if program else "All"
+    filename = f"Active_Internships_{department_str}_{program_str}.xlsx"
+
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(content=output, headers=headers,
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@router.get("/get_supervisors/", status_code=status.HTTP_200_OK)
+async def get_supervisors(search: Optional[str] = None):
+    """
+    Fetch all supervisors from an external API and optionally filter them by a search term.
+    """
+    try:
+        supervisors = fetch_supervisors()
+        if search:
+            supervisors = [name for name in supervisors if search.lower() in name.lower()]
+        return supervisors
+    except HTTPException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)

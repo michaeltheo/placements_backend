@@ -1,7 +1,8 @@
 from typing import Optional, List, Tuple
 
+import requests
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from starlette import status
 
 from core.constants import INTERNSHIP_PROGRAM_REQUIREMENTS
@@ -11,7 +12,7 @@ from crud.company_crud import get_company
 from crud.user_answer_crud import delete_user_answers
 from crud.user_crud import get_user_by_id
 from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies, Dikaiologitika, \
-    Department, SubmissionTime
+    Department, SubmissionTime, Internship
 from schemas.internship_schema import InternshipCreate, InternshipAllRead
 
 
@@ -40,6 +41,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         existing_internship.program = internship_data.program
         existing_internship.start_date = internship_data.start_date
         existing_internship.end_date = internship_data.end_date
+        existing_internship.supervisor = internship_data.supervisor
         db.commit()
         db.refresh(existing_internship)
         return existing_internship
@@ -54,6 +56,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
         existing_internship.program = internship_data.program
         existing_internship.start_date = internship_data.start_date
         existing_internship.end_date = internship_data.end_date
+        existing_internship.supervisor = internship_data.supervisor
         db.commit()
         db.refresh(existing_internship)
         return existing_internship
@@ -70,7 +73,8 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
             department=internship_data.department,
             start_date=internship_data.start_date,
             end_date=internship_data.end_date,
-            status=InternshipStatus.SUBMIT_START_FILES
+            status=InternshipStatus.SUBMIT_START_FILES,
+            supervisor=internship_data.supervisor
         )
         db.add(new_internship)
         db.commit()
@@ -246,6 +250,7 @@ def get_all_internships(
                 start_date=internship.start_date,
                 end_date=internship.end_date,
                 status=internship.status,
+                supervisor=internship.supervisor,
                 user_first_name=user.first_name if user else "",
                 user_last_name=user.last_name if user else "",
                 user_am=user.AM if user else "",
@@ -292,7 +297,6 @@ def check_required_files_submitted(db: Session, user_id: int, program: Internshi
     # Get the required files for the program and submission time
     required_files = get_required_files(program, submission_time)
     total_required_files = len(required_files)
-    print(required_files, total_required_files)
 
     # Query the submitted files from the database
     submitted_files = db.query(Dikaiologitika).filter(
@@ -307,3 +311,39 @@ def check_required_files_submitted(db: Session, user_id: int, program: Internshi
     # Check if all required files are submitted
     all_submitted = submitted_files_count == total_required_files
     return all_submitted, submitted_files_count, total_required_files
+
+
+def fetch_active_internships_with_details(db: Session, program: Optional[InternshipProgram],
+                                          department: Optional[Department]):
+    """
+    Fetch active internships with all related user and company details.
+
+    Parameters:
+    - db (Session): Database session.
+    - program (Optional[InternshipProgram]): Filter by specific internship program.
+    - department (Optional[Department]): Filter by department.
+
+    Returns:
+    - List of internships with detailed data.
+    """
+    query = db.query(Internship) \
+        .options(joinedload(Internship.user), joinedload(Internship.company)) \
+        .filter(Internship.status == InternshipStatus.ACTIVE)
+
+    if program:
+        query = query.filter(Internship.program == program)
+    if department:
+        query = query.filter(Internship.department == department)
+
+    return query.all()
+
+
+def fetch_supervisors():
+    url = 'https://aboard.iee.ihu.gr/api/v2/authors'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        supervisors = response.json()
+        return [supervisor['name'] for supervisor in supervisors]
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=str(e))

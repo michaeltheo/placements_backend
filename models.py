@@ -35,10 +35,10 @@ class Department(str, Enum):
 
 # Define internship programs
 class InternshipProgram(str, Enum):
-    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΟΑΕΔ"
+    TEITHE_OAED = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΧΩΡΙΣ ΕΣΠΑ ( ΙΔΙΩΤΙΚΟΣ 'Η ΔΗΜΟΣΙΟΣ ΤΟΜΕΑΣ)"
     ESPA = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΕΣΠΑ"
-    TEITHE_JOB_RECOGNITION = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ"
-    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΜΕ ΥΠΕΥΘΥΝΗ ΔΗΛΩΣΗ ΤΟΥ ΕΡΓΟΔΟΤΗ"
+    TEITHE_JOB_RECOGNITION = "ΑΝΑΓΝΩΡΙΣΗ ΕΡΓΑΣΙΑΣ ΩΣ ΠΡΑΚΤΙΚΗ ΑΣΚΗΣΗ ΓΙΑ ΕΡΓΑΖΟΜΕΝΟΥΣ ΦΟΙΤΗΤΕΣ"
+    EMPLOYER_DECLARATION_OF_RESPONSIBILITY = "ΚΑΛΥΨΗ ΤΗΣ ΑΜΟΙΒΗΣ ΤΟΥ ΦΟΙΤΗΤΗ ΑΠΟ ΤΟΝ ΦΟΡΕΑ"
 
 
 # Define internship statuses
@@ -134,6 +134,9 @@ class Companies(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     AFM = Column(String, unique=True, nullable=False)
+    email = Column(String, nullable=False)
+    telephone = Column(String, nullable=False)
+    city = Column(String, nullable=False)
 
     # Define relationships
     internships = relationship("Internship", back_populates="company")
@@ -151,7 +154,7 @@ class Internship(Base):
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
     status = Column(SQLAlchemyEnum(InternshipStatus), default=InternshipStatus.SUBMIT_START_FILES, nullable=False)
-
+    supervisor = Column(String, nullable=True)
     # Define relationships
     user = relationship("Users", back_populates='internships')
     company = relationship("Companies", back_populates="internships")

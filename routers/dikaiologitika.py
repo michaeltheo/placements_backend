@@ -2,6 +2,7 @@ import os
 import zipfile
 from tempfile import NamedTemporaryFile
 from typing import List, Optional, Dict
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from sqlalchemy.orm import Session
@@ -269,7 +270,7 @@ async def download_file_endpoint(file_id: int, db: Session = Depends(get_db),
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
 
-    return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type='application/octet-stream')
+    return FileResponse(path=file_path, filename=os.path.basename(file_path), media_type="application/pdf")
 
 
 @router.get("/{file_id}", response_model=Message)
@@ -328,6 +329,7 @@ async def download_user_files_as_zip(
 
     # Get the user's files
     files = get_files_by_user_id(db, user_id=user_id)
+    user = get_user_by_id(db, user_id=user_id)
     if not files:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
 
@@ -340,8 +342,15 @@ async def download_user_files_as_zip(
 
     # Create the ZIP file
     create_zip_file(file_paths, zip_filename)
-
-    return FileResponse(path=zip_filename, filename=f"user_{user_id}_files.zip", media_type='application/zip')
+    formatted_filename = f"{user.first_name}_{user.last_name}_{user.AM}_files.zip"
+    encoded_filename = quote(formatted_filename)
+    return FileResponse(
+        path=zip_filename,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        },
+        media_type='application/zip'
+    )
 
 
 # Helper function to create the ZIP file
