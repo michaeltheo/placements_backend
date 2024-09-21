@@ -15,7 +15,8 @@ from core.auth import create_access_token
 from core.auth import verify_jwt
 from core.config import settings
 from core.messages import Messages
-from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, split_full_name, determine_department
+from crud.user_crud import get_user_by_id, create_user, get_user_by_AM, is_admin, split_full_name, determine_department, \
+    is_secretary
 from dependencies import get_db
 from models import Department
 from schemas.response import Message, ResponseWrapper
@@ -107,6 +108,8 @@ async def authenticate_login(request: Request, response: Response, db: Session =
     if db_user:
         # Determine if the user is an admin
         admin_status = is_admin(db_user)
+        # Determine if the user is a secretary
+        secretary_status = is_secretary(db_user)
         # Create access token for the user
         access_token = create_access_token(data={"sub": str(db_user.id)})
         # Set access token as cookie
@@ -131,6 +134,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             role=db_user.role.value,
             department=db_user.department,
             isAdmin=admin_status,
+            isSecretary=secretary_status,
         )
     else:
         # Split full name into first name and last name
@@ -152,6 +156,8 @@ async def authenticate_login(request: Request, response: Response, db: Session =
         new_user = create_user(db=db, user=new_user_data)
         # Determine if the new user is an admin and generate a new access token
         admin_status = is_admin(new_user)
+        # Determine if the user is a secretary
+        secretary_status = is_secretary(new_user)
         access_token = create_access_token(data={"sub": str(new_user.id)})
         # Set access token as cookie
         response.set_cookie(
@@ -174,6 +180,7 @@ async def authenticate_login(request: Request, response: Response, db: Session =
             department=new_user.department,
             role=new_user.role.value,
             isAdmin=admin_status,
+            isSecretary=secretary_status,
         )
     # Construct tokens dictionary
     tokens = {
@@ -211,6 +218,7 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
         # Fetch the user from the database using the user ID
         user = get_user_by_id(db, int(user_id))
         admin_status = is_admin(user)
+        secretary_status = is_secretary(user)
         user_response_data = {
             "id": user.id,
             "first_name": user.first_name,
@@ -222,7 +230,8 @@ def verify_token_endpoint(access_token: str = Cookie(None, alias="placements_acc
             "department": user.department,
             "role": user.role.value,
             "isAdmin": admin_status,
-            "accessToken": access_token
+            "accessToken": access_token,
+            "isSecretary": secretary_status
         }
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.USER_NOT_FOUND)

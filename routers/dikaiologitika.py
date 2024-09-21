@@ -13,9 +13,11 @@ from core.constants import INTERNSHIP_PROGRAM_REQUIREMENTS
 from core.messages import Messages
 from crud.dikaiologitika_crud import create_dikaiologitika, get_files_by_user_id, get_all_files, update_file_path, \
     get_file_by_id, delete_file
-from crud.user_crud import get_user_by_id, is_admin
+from crud.intership_crud import get_user_internship
+from crud.user_crud import get_user_by_id, is_admin, is_secretary
 from dependencies import get_db, get_current_user
-from models import Users, DikaiologitikaType, Dikaiologitika as DikaiologitikaModels, InternshipProgram
+from models import Users, DikaiologitikaType, Dikaiologitika as DikaiologitikaModels, InternshipProgram, \
+    InternshipStatus
 from schemas.dikaiologitika_schema import DikaiologitikaCreate, Dikaiologitika
 from schemas.response import ResponseWrapper, Message, FileAndUser
 from schemas.user_schema import User
@@ -57,6 +59,10 @@ async def upload_dikaiologitika_endpoint(
     The endpoint performs checks to ensure the uploaded file is a PDF and does not duplicate existing files (by name)
     under the same user and type. It creates a new record in the database with the document's metadata.
 
+    Additional Checks:
+    - If the user's internship status is 'SUBMIT_STAT_FILES_WITHOUT_SECRETARY_CERTIFICATION', they are not allowed
+      to upload 'BebaiosiPraktikisApoGramateia'.
+
     Parameters:
     - file (UploadFile): The document file to upload, must be a PDF.
     - type (DikaiologitikaType): The type of document being uploaded, selected from predefined options.
@@ -70,19 +76,33 @@ async def upload_dikaiologitika_endpoint(
     if file.content_type != 'application/pdf':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.FILE_MUST_BE_PDF)
 
-    file_location = f"files/{current_user.id}/{type.value}/{file.filename}"
+    # Fetch the user's internship
+    internship = get_user_internship(db, current_user.id)
+    if not internship:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
+
+    # Check internship status and file type
+    if internship.status == InternshipStatus.SUBMIT_STAT_FILES_WITHOUT_SECRETARY_CERTIFICATION and type == DikaiologitikaType.BebaiosiPraktikisApoGramateia:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=Messages.FILE_BEBAIOSI_PRAKTIKIS_FORBIDDEN)
+
+    # Check if the file already exists for the user
     existing_files = db.query(DikaiologitikaModels).filter(
         DikaiologitikaModels.user_id == current_user.id,
         DikaiologitikaModels.type == type.value
     ).all()
     if existing_files:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=Messages.FILE_ALREADY_SUBMITTED)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.FILE_ALREADY_SUBMITTED)
+
+    # Define the file location and save the file
+    file_location = f"files/{current_user.id}/{type.value}/{file.filename}"
     os.makedirs(os.path.dirname(file_location), exist_ok=True)
 
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
 
+    # Create the dikaiologitika record in the database
     dikaiologitika_data = DikaiologitikaCreate(type=type.value)
     dikaiologitika = create_dikaiologitika(
         db=db,
@@ -120,8 +140,8 @@ async def read_files_for_user_endpoint(
      Returns:
      - A response wrapper containing a list of files and the user object, along with a success message.
      """
-    # Ensure the requesting user is the owner of the files or an admin
-    if current_user.id != user_id and not is_admin(current_user):
+    # Ensure the requesting user is the owner of the files or an admin/secretary
+    if current_user.id != user_id and not is_admin(current_user) and not is_secretary(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=Messages.FILE_ACCESS_FORBIDDEN)
 
@@ -205,19 +225,17 @@ async def update_dikaiologitika_file_endpoint(
 
     # Fetch the file record to ensure it exists and belongs to the current user
     dikaiologitika = get_file_by_id(db, dikaiologitika_id)
-    if not dikaiologitika or dikaiologitika.user_id != current_user.id:
+    if not dikaiologitika or (dikaiologitika.user_id != current_user.id and not is_admin(current_user)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=Messages.FILE_NOT_FOUND)
 
     # Define the new file location
-    new_file_location = f"files/{current_user.id}/{dikaiologitika.type.value}/{file.filename}"
+    new_file_location = f"files/{dikaiologitika.user_id}/{dikaiologitika.type.value}/{file.filename}"
 
     try:
         os.remove(dikaiologitika.file_path)
     except FileNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=Messages.FILE_NOT_FOUND)
-        pass
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -227,9 +245,9 @@ async def update_dikaiologitika_file_endpoint(
         file_object.write(file.file.read())
 
     # Update the database record with the new file path
-    new_update_file = update_file_path(db=db, file_id=dikaiologitika_id, new_file_path=new_file_location,
-                                       file_name=file.filename)
-    if not new_update_file:
+    updated = update_file_path(db=db, file_id=dikaiologitika_id, new_file_path=new_file_location,
+                               file_name=file.filename)
+    if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.FILE_NOT_FOUND)
 
     return Message(detail=Messages.FILE_UPDATED_SUCCESS)
@@ -261,7 +279,7 @@ async def download_file_endpoint(file_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.FILE_NOT_FOUND)
 
     # Check if the current user is the owner of the file or an admin
-    if file_record.user_id != current_user.id and not is_admin(current_user):
+    if file_record.user_id != current_user.id and not is_admin(current_user) and not is_secretary(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=Messages.UNAUTHORIZED_USER)
 
@@ -350,6 +368,76 @@ async def download_user_files_as_zip(
             "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
         },
         media_type='application/zip'
+    )
+
+
+@router.post("/secretary/upload/{user_id}", response_model=ResponseWrapper[Dikaiologitika],
+             status_code=status.HTTP_200_OK)
+async def upload_bebaiosi_praktikis_by_secretary(
+        user_id: int,
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+        current_user: Users = Depends(get_current_user)
+):
+    """
+    Allows a secretary to upload the BebaiosiPraktikisApoGramateia document for a user.
+    If the file already exists, it will be updated.
+    Secretaries are restricted to this document type only.
+    Upon a successful upload, the internship status will be updated to 'SUBMIT_START_FILES'.
+    """
+    if not is_secretary(current_user) and not is_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
+
+    # Ensure file is PDF
+    if file.content_type != 'application/pdf':
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.FILE_MUST_BE_PDF)
+
+    # Fetch user's internship
+    internship = get_user_internship(db, user_id)
+    if not internship:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.INTERNSHIP_NOT_FOUND)
+
+    # Check if BebaiosiPraktikisApoGramateia already exists for the user
+    existing_file = db.query(DikaiologitikaModels).filter(
+        DikaiologitikaModels.user_id == user_id,
+        DikaiologitikaModels.type == DikaiologitikaType.BebaiosiPraktikisApoGramateia
+    ).first()
+
+    # Define the file location
+    file_location = f"files/{user_id}/{DikaiologitikaType.BebaiosiPraktikisApoGramateia.value}/{file.filename}"
+    os.makedirs(os.path.dirname(file_location), exist_ok=True)
+
+    # Save the new file
+    with open(file_location, "wb+") as file_object:
+        file_object.write(file.file.read())
+
+    if existing_file:
+        # Update the existing file record using update_file_path method
+        updated = update_file_path(db=db, file_id=existing_file.id, new_file_path=file_location,
+                                   file_name=file.filename)
+        if not updated:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update the file.")
+        dikaiologitika = existing_file
+    else:
+        # Create a new file record
+        dikaiologitika_data = DikaiologitikaCreate(type=DikaiologitikaType.BebaiosiPraktikisApoGramateia)
+        dikaiologitika = create_dikaiologitika(
+            db=db,
+            dikaiologitika=dikaiologitika_data,
+            file_name=file.filename,
+            user_id=user_id,
+            file_path=file_location,
+            internship_program=internship.program
+        )
+
+    # Update internship status to SUBMIT_START_FILES
+    internship.status = InternshipStatus.SUBMIT_START_FILES
+    db.commit()
+    db.refresh(internship)
+
+    return ResponseWrapper(
+        data=dikaiologitika,
+        message=Message(detail=Messages.FILE_UPDATED_SUCCESS if existing_file else Messages.FILE_UPLOADED_SUCCESS)
     )
 
 

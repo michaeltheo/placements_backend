@@ -69,6 +69,19 @@ def is_admin(user: Users) -> bool:
     return user.role == UserRole.ADMIN or user.role == UserRole.SUPER_ADMIN
 
 
+def is_secretary(user: Users) -> bool:
+    """
+     Check if a given user has a secretary role.
+
+     Parameters:
+     - user (Users): An instance of the Users model.
+
+     Returns:
+     - bool: True if the user is a secretary, False otherwise.
+     """
+    return user.role == UserRole.SECRETARY
+
+
 def is_super_admin(user: Users) -> bool:
     """
     Check if a given user has a super admin role.

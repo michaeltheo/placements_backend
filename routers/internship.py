@@ -13,7 +13,7 @@ from crud.company_crud import get_company
 from crud.intership_crud import get_user_internship, delete_internship, \
     create_or_update_internship, update_internship_status, get_all_internships, get_internship_by_id, \
     fetch_active_internships_with_details, fetch_supervisors
-from crud.user_crud import is_admin, get_user_by_id
+from crud.user_crud import is_admin, get_user_by_id, is_secretary
 from dependencies import get_db, get_current_user
 from models import Users, InternshipProgram, InternshipStatus, Department
 from schemas.internship_schema import InternshipRead, InternshipCreate, InternshipAllRead, InternshipUpdate
@@ -34,12 +34,33 @@ async def get_all_internships_endpoint(
         program: Optional[InternshipProgram] = Query(None, description="Filter by Internship Program"),
         user_am: Optional[str] = Query(None, description="Filter by User AM"),
         company_name: Optional[str] = Query(None, description="Filter by Company Name"),
+        sendBySecretary: bool = Query(False,
+                                      description="If true, filters by secretary-uploaded document (AitisiPraktikis)"),
         page: int = Query(1, description="Page number"),
         items_per_page: int = Query(10, description="Number of items per page")
 ):
-    if not is_admin(current_user):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=Messages.UNAUTHORIZED_USER)
+    """
+    Retrieves all internships, with optional filters for department, status, program, user academic number,
+    and company name. If `sendBySecretary` is True and the request is made by a secretary, it returns only
+    the internships where the user has uploaded a document of type 'AitisiPraktikis'.
+
+    Parameters:
+    - db (Session): Database session.
+    - current_user (Users): The current authenticated user.
+    - department (Optional[Department]): Filter by department.
+    - internship_status (Optional[InternshipStatus]): Filter by internship status.
+    - program (Optional[InternshipProgram]): Filter by internship program.
+    - user_am (Optional[str]): Filter by user academic number.
+    - company_name (Optional[str]): Filter by company name.
+    - sendBySecretary (bool): If true, limits results to those where 'AitisiPraktikis' document was uploaded.
+    - page (int): Page number for pagination.
+    - items_per_page (int): Number of items per page.
+
+    Returns:
+    - ResponseTotalItems[List[InternshipAllRead]]: A list of internships with detailed information.
+    """
+    if not is_admin(current_user) and not is_secretary(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.UNAUTHORIZED_USER)
 
     internships, total_items = get_all_internships(
         db=db,
@@ -48,6 +69,7 @@ async def get_all_internships_endpoint(
         program=program,
         user_am=user_am,
         company_name=company_name,
+        send_by_secretary=sendBySecretary if is_secretary(current_user) else False,
         page=page,
         items_per_page=items_per_page
     )

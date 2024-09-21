@@ -12,6 +12,7 @@ class UserRole(Enum):
     STUDENT = "student"
     ADMIN = "admin"
     SUPER_ADMIN = 'super_admin'
+    SECRETARY = 'secretary'
 
 
 # Define submission times
@@ -43,7 +44,8 @@ class InternshipProgram(str, Enum):
 
 # Define internship statuses
 class InternshipStatus(str, Enum):
-    SUBMIT_START_FILES = "Κατάθεση Δικαιολογητικών Έναρξης"
+    SUBMIT_STAT_FILES_WITHOUT_SECRETARY_CERTIFICATION = "Κατάθεση Δικαιολογητικών Έναρξης (Βεβαίωση Πρακτικής: Προς το παρόν Μη Διαθέσιμη)"
+    SUBMIT_START_FILES = "Κατάθεση Δικαιολογητικών Έναρξης (Βεβαίωση Πρακτικής: Διαθέσιμη)"
     SUBMIT_END_FILES = "Κατάθεση Δικαιολογητικών Λήξης"
     PENDING_REVIEW_START = "Έλεγχος Δικαιολογητικών Έναρξης"
     PENDING_REVIEW_END = "Έλεγχος Δικαιολογητικών Λήξης"
@@ -153,7 +155,8 @@ class Internship(Base):
     program = Column(SQLAlchemyEnum(InternshipProgram), nullable=False)
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
-    status = Column(SQLAlchemyEnum(InternshipStatus), default=InternshipStatus.SUBMIT_START_FILES, nullable=False)
+    status = Column(SQLAlchemyEnum(InternshipStatus),
+                    default=InternshipStatus.SUBMIT_STAT_FILES_WITHOUT_SECRETARY_CERTIFICATION, nullable=False)
     supervisor = Column(String, nullable=True)
     # Define relationships
     user = relationship("Users", back_populates='internships')
