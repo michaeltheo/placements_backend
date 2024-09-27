@@ -68,23 +68,27 @@ class DikaiologitikaType(Enum):
     YpeuthiniDilosiErgodoti = "YpeuthiniDilosiErgodoti"
     AnagnorisiErgasias = "AnagnorisiErgasias"
     BebaiosiApasxolisisKaiAsfalisisAskoumenou = "BebaiosiApasxolisisKaiAsfalisisAskoumenou"
+    BebaiosiOlokrilosisPraktikisAskisis = 'BebaiosiOlokrilosisPraktikisAskisis'
+    SimbasiErgasias = 'SimbasiErgasias'
 
     @staticmethod
     def get_description(type_member):
         descriptions = {
-            DikaiologitikaType.BebaiosiPraktikisApoGramateia: "Βεβαίωση πρακτικής από την γραμματεία",
-            DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi: "Αίτηση Φορέα Απασχόλησης Φοιτητή",
-            DikaiologitikaType.AntigraphoE3_5: "Αντίγραφο του εντύπου Ε3.5. (λήξη) της Πρακτικής Άσκησης",
+            DikaiologitikaType.BebaiosiPraktikisApoGramateia: "Βεβαίωση πρακτικής",
+            DikaiologitikaType.AitisiForeaGiaApasxolisiFoititi: "Αίτηση Φορέα για Απασχόληση Φοιτητή",
+            DikaiologitikaType.AntigraphoE3_5: "Αντίγραφο του εντύπου Ε3.5",
             DikaiologitikaType.BebaiosiEnsimonApoEfka: "Βεβαίωση ενσήμων από το ΕΦΚΑ",
-            DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis: "Αποδείξεις εξόφλησης της μηνιαίας αποζημίωσης πρακτικής άσκησης του φορέα απασχόλησης μέσω του τραπεζικού σας λογαριασμού",
+            DikaiologitikaType.ApodeixeisEjoflisisMinaiasApozimiosis: "Αποδείξεις Εξόφλησης Μηνιαίας Αποζημίωσης Φοιτητή/τριας",
             DikaiologitikaType.AitisiOlokrirosisPraktikisAskisis: "Αίτηση Ολοκλήρωσης Πρακτικής Άσκησης",
-            DikaiologitikaType.AitisiPraktikis: "Αίτηση πρακτικής",
+            DikaiologitikaType.AitisiPraktikis: "Αίτηση Πρακτικής Άσκησης",
             DikaiologitikaType.DilosiAtomikonStoixeion: "Δήλωση Ατομικών Στοιχείων",
             DikaiologitikaType.YpeuthiniDilosiProsopikonDedomenon: "Υπεύθυνη Δήλωση Προσωπικών Δεδομένων",
             DikaiologitikaType.DilosiMoriodotisi: "Δήλωση Μοριοδότησης",
-            DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Εργοδότη",
-            DikaiologitikaType.AnagnorisiErgasias: "Αναγνώριση Εργασίας",
-            DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou: "Βεβαίωση Απασχόλησης και Ασφάλισης Ασκούμενου"
+            DikaiologitikaType.YpeuthiniDilosiErgodoti: "Υπεύθυνη Δήλωση Φορέα",
+            DikaiologitikaType.AnagnorisiErgasias: "Αίτηση Αναγνώρισης",
+            DikaiologitikaType.BebaiosiApasxolisisKaiAsfalisisAskoumenou: "Βεβαίωση Απασχόλησης και Ασφάλισης Ασκούμενου",
+            DikaiologitikaType.BebaiosiOlokrilosisPraktikisAskisis: "Βεβαίωση Ολοκλήρωσης Πρακτικής Άσκησης",
+            DikaiologitikaType.SimbasiErgasias: "Σύμβαση Εργασίας"
         }
         return descriptions.get(type_member, "Unknown Type")
 
