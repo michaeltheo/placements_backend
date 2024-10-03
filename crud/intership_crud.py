@@ -12,7 +12,7 @@ from crud.company_crud import get_company
 from crud.user_answer_crud import delete_user_answers
 from crud.user_crud import get_user_by_id
 from models import Internship as InternshipModel, InternshipProgram, InternshipStatus, Users, Companies, Dikaiologitika, \
-    Department, SubmissionTime, Internship
+    Department, SubmissionTime, Internship, DikaiologitikaType
 from schemas.internship_schema import InternshipCreate, InternshipAllRead
 
 
@@ -73,7 +73,7 @@ def create_or_update_internship(db: Session, user_id: int, internship_data: Inte
             department=internship_data.department,
             start_date=internship_data.start_date,
             end_date=internship_data.end_date,
-            status=InternshipStatus.SUBMIT_START_FILES,
+            status=InternshipStatus.SUBMIT_STAT_FILES_WITHOUT_SECRETARY_CERTIFICATION,
             supervisor=internship_data.supervisor
         )
         db.add(new_internship)
@@ -120,7 +120,6 @@ def update_internship_status(db: Session, internship_id: int, internship_status:
             all_submitted, submitted_files_count, required_files_count = check_required_files_submitted(
                 db, internship.user_id, internship.program, SubmissionTime.END)
             if not all_submitted:
-                # Raise 400 error if required end files are not submitted
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Δεν υποβλήθηκαν τα απαιτούμενα δικαιολογητικά λήξης. {submitted_files_count}/{required_files_count}."
@@ -197,11 +196,14 @@ def get_all_internships(
         department: Optional[Department] = None,
         user_am: Optional[str] = None,
         company_name: Optional[str] = None,
+        send_by_secretary: bool = False,
         page: int = 1,
         items_per_page: int = 10
 ) -> Tuple[List[InternshipAllRead], int]:
     """
-    Get all internships with optional filtering by status, program, department, user academic number, and company name, with pagination.
+    Get all internships with optional filtering by status, program, department, user academic number,
+    and company name, with pagination. If `send_by_secretary` is True, the internships are filtered
+    based on whether the user has uploaded a document of type 'AitisiPraktikis'.
 
     Parameters:
     - db (Session): Database session.
@@ -210,6 +212,7 @@ def get_all_internships(
     - department (Optional[Department]): The department to filter by.
     - user_am (Optional[str]): The academic number to filter by.
     - company_name (Optional[str]): The company name to filter by.
+    - send_by_secretary (bool): If true, filters internships where 'AitisiPraktikis' is found.
     - page (int): The page number for pagination.
     - items_per_page (int): The number of items per page.
 
@@ -217,6 +220,10 @@ def get_all_internships(
     - Tuple[List[InternshipAllRead], int]: A list of internships with detailed information and the total count.
     """
     query = db.query(InternshipModel)
+    if send_by_secretary:
+        query = query.join(Dikaiologitika, Dikaiologitika.user_id == InternshipModel.user_id).filter(
+            Dikaiologitika.type == DikaiologitikaType.AitisiPraktikis
+        )
 
     if department:
         query = query.filter(InternshipModel.department == department)
@@ -256,6 +263,7 @@ def get_all_internships(
                 user_am=user.AM if user else "",
                 company_name=company.name if company else None,
                 company_id=company.id if company else None,
+                sendBySecretary=send_by_secretary
             )
         )
 

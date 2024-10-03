@@ -16,6 +16,7 @@ class UserRole(str, Enum):
     STUDENT = "student"
     ADMIN = "admin"
     SUPER_ADMIN = 'super_admin'
+    SECRETARY = 'secretary'
 
 
 class Department(str, Enum):
@@ -85,13 +86,20 @@ class UserCreateResponse(User):
 
     Attributes:
     - isAdmin (bool): A computed field to easily indicate whether the user has administrative privileges, based on the 'role' attribute.
+    - isSecretary (bool): A computed field to easily indicate whether the user has secretary privileges, based on the 'role' attribute.
     """
     isAdmin: bool = Field(..., description="A flag indicating whether the user has administrative privileges.")
+    isSecretary: bool = Field(..., description="A flag indicating whether the user has secretary privileges.")
 
     @property
     def isAdmin(self) -> bool:
         """Determine if the user is an admin based on the role."""
         return self.role == UserRole.ADMIN.value or self.role == UserRole.SUPER_ADMIN.value
+
+    @property
+    def isSecretary(self) -> bool:
+        """Determine if the user is a secretary based on the role."""
+        return self.role == UserRole.SECRETARY.value
 
 
 class UserLoginResponse(BaseModel):

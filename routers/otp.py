@@ -24,7 +24,7 @@ expires_time = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TO
 expires_in_seconds = settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60
 
 
-@router.get('/generate', response_model=ResponseWrapper[OtpBase], status_code=status.HTTP_200_OK)
+@router.get('/generate/', response_model=ResponseWrapper[OtpBase], status_code=status.HTTP_200_OK)
 async def generate_otp(current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Generate and send an OTP to the user.

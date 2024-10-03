@@ -31,6 +31,7 @@ class Messages:
     COMPANY_ANSWERS_DELETION_FAILED = 'Δεν βρέθηκαν απαντήσεις για διαγραφή ή δεν ήταν δυνατή η διαγραφή.'
     FILE_NOT_FOUND = "Το αρχείο δεν βρέθηκε."
     FILE_UPLOADED_SUCCESS = "Το αρχείο ανέβηκε με επιτυχία."
+    FILE_BEBAIOSI_PRAKTIKIS_FORBIDDEN = 'Δεν μπορείτε να ανεβάσετε την Βεβαίωση Πρακτικής Άσκησης απο την Γραμματεία'
     FILE_UPDATED_SUCCESS = "Το αρχείο ενημερώθηκε με επιτυχία."
     FILE_DELETED_SUCCESS = "Το αρχείο διαγράφηκε με επιτυχία."
     FILE_ACCESS_FORBIDDEN = "Δεν έχετε άδεια πρόσβασης σε αυτά τα αρχεία."

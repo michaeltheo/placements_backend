@@ -70,7 +70,7 @@ def create_dikaiologitika(db: Session, dikaiologitika: DikaiologitikaCreate, use
         file_path=file_path,
         date=local_time,
         type=dikaiologitika.type,
-        submission_time=dikaiologitika.submission_time,  # Add submission time here
+        submission_time=dikaiologitika.submission_time,
         file_name=file_name
     )
     db.add(db_dikaiologitika)
